@@ -14,7 +14,8 @@ edition = "2024"
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "lolgang_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# 只要 rlib：模板里的 staticlib、cdylib 是给手机端留的，桌面的 exe 用不到，留着每次构建多出两份产物（3.3.0）
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
