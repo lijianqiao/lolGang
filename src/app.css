@@ -779,6 +779,8 @@ p .tip {
   position: relative;
   width: 264px;
   aspect-ratio: 1;
+  /* 右边的列表比轮盘高时（表情页），轮盘在这一行里上下居中，不贴在顶上 */
+  align-self: center;
   border-radius: 50%;
   background: radial-gradient(circle, var(--lol-ring-1) 31%, var(--lol-ring-2) 69%, transparent 69.6%);
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
