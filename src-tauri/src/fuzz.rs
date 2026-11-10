@@ -142,7 +142,7 @@ mod tests {
     };
     use crate::protocol::live::{LiveBody, Status, open_live, sign_live};
     use crate::protocol::packet::{open_packet, peek_room_id, seal_packets};
-    use crate::protocol::room_code::{RoomCode, owner_tag_of};
+    use crate::protocol::room_code::{OwnerRule, RoomCode, ShortCode, TeamCode, owner_tag_of};
     use crate::rooms::state::derive_room_state;
     use crate::settings2::{Settings, normalize};
     use crate::sync::plan::{Holdings, dominates, missing_total, state_gaps};
@@ -410,10 +410,19 @@ mod tests {
             owner_tag: [6; 10],
         }
         .format();
-        run("队伍码", &[code.into_bytes()], |b| {
+        let short = ShortCode::new(&identity(1).member_id(), &[7; 16]).format();
+        run("队伍码", &[code.into_bytes(), short.into_bytes()], |b| {
             let s = String::from_utf8_lossy(b);
             let _ = RoomCode::parse(&s);
+            // 两种码都认的入口；解析得出来的，再生成一遍要能原样解析回来
+            if let Ok(code) = TeamCode::parse(&s) {
+                assert_eq!(TeamCode::parse(&code.format()), Ok(code));
+                assert_eq!(TeamCode::from_bytes(&code.to_bytes()), Some(code));
+            }
+            let _ = TeamCode::from_bytes(b);
+            let _ = OwnerRule::from_bytes(b);
             let _ = crate::base32::decode(&s, 218);
+            let _ = crate::base32::decode(&s, 100);
             let _ = crate::base32::decode(&s, 64);
         });
     }

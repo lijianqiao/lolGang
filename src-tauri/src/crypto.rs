@@ -55,6 +55,17 @@ pub fn derive_room_keys(room_secret: &[u8; 16], owner_tag: &[u8; 10]) -> (RoomKe
     (key, id)
 }
 
+/// GT3 队伍码（3.3.0，架构 3.1）：从码的主体 `C` 派生包加密密钥和房间标识。
+/// salt 和 info 都和上面 GT2 的不同，两种码不可能派生出同一个房间。
+pub fn derive_team_keys_v3(commit: &[u8; 12]) -> (RoomKey, RoomId) {
+    let hk = Hkdf::<Sha256>::new(Some(b"gang/team/v3"), commit);
+    let mut key = [0u8; 32];
+    let mut id = [0u8; 16];
+    hk.expand(b"gang/room-key/v3", &mut key).expect("长度合法");
+    hk.expand(b"gang/room-id/v3", &mut id).expect("长度合法");
+    (key, id)
+}
+
 pub fn seal(key: &RoomKey, nonce: &[u8; 24], aad: &[u8], plaintext: &[u8]) -> Vec<u8> {
     let cipher = XChaCha20Poly1305::new(&Key::from(*key));
     cipher
