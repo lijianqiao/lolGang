@@ -231,9 +231,9 @@ fn run(
         let trusted = unsafe { AXIsProcessTrusted() };
         // 系统说已经允许了、监听还是建不起来：没有开发者签名的程序更新后，系统把它当成新程序，旧的授权不算数。
         let message = if trusted {
-            "系统里已经允许了 lolGang，但还是读不到键鼠：多半是更新后系统把它当成了新程序。请在「系统设置 → 隐私与安全性 → 辅助功能」里把 lolGang 删掉再加回来，然后重开"
+            "系统里已经允许了 lolPing-rust，但还是读不到键鼠：多半是更新后系统把它当成了新程序。请在「系统设置 → 隐私与安全性 → 辅助功能」里把 lolPing-rust 删掉再加回来，然后重开"
         } else {
-            "读不到键鼠：请在「系统设置 → 隐私与安全性 → 辅助功能」里允许 lolGang，然后重开"
+            "读不到键鼠：请在「系统设置 → 隐私与安全性 → 辅助功能」里允许 lolPing-rust，然后重开"
         };
         let _ = ready.send(Err(message.to_string()));
         return;

@@ -134,7 +134,7 @@ pub async fn check(app: &AppHandle, quiet: bool) -> UpdateView {
             crate::tray::set_update_label(app, Some(&version));
             if first_time && let Some(state) = app.try_state::<AppState>() {
                 state.overlays.send(Msg::Toast {
-                    title: format!("lolGang 有新版本 {version}"),
+                    title: format!("lolPing-rust 有新版本 {version}"),
                     body: "在控制面板的「关于」里更新".into(),
                 });
             }

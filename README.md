@@ -1,11 +1,13 @@
-# lolGang
+# lolPing-rust
 
 > 参考 [lolPing](https://github.com/darrenprx/lolPing)（作者 Danrui Meng，MIT 许可）用 Rust 重写的版本：信号、表情、组队、队伍面板、投票和打字沿用 lolPing 的做法，另外加了按住说话的语音、带历史记录的聊天框、6 种字幕特效，界面换成英雄联盟客户端的样子。
+>
+> **这不是 lolPing 的官方版本**：lolPing-rust 是独立的项目，和 lolPing 的作者没有关系，也不互通。3.3.0 以前叫 lolGang。
 
-[![最新版本](https://img.shields.io/github/v/release/lijianqiao/lolGang?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC)](https://github.com/lijianqiao/lolGang/releases/latest)
-[![下载次数](https://img.shields.io/github/downloads/lijianqiao/lolGang/total?label=%E4%B8%8B%E8%BD%BD)](https://github.com/lijianqiao/lolGang/releases)
-[![CI](https://github.com/lijianqiao/lolGang/actions/workflows/ci.yml/badge.svg)](https://github.com/lijianqiao/lolGang/actions/workflows/ci.yml)
-[![许可](https://img.shields.io/github/license/lijianqiao/lolGang?label=%E8%AE%B8%E5%8F%AF)](LICENSE)
+[![最新版本](https://img.shields.io/github/v/release/lijianqiao/lolPing-rust?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC)](https://github.com/lijianqiao/lolPing-rust/releases/latest)
+[![下载次数](https://img.shields.io/github/downloads/lijianqiao/lolPing-rust/total?label=%E4%B8%8B%E8%BD%BD)](https://github.com/lijianqiao/lolPing-rust/releases)
+[![CI](https://github.com/lijianqiao/lolPing-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/lijianqiao/lolPing-rust/actions/workflows/ci.yml)
+[![许可](https://img.shields.io/github/license/lijianqiao/lolPing-rust?label=%E8%AE%B8%E5%8F%AF)](LICENSE)
 
 常驻桌面的英雄联盟小玩具：按住 Alt 拖动，在屏幕任何地方发英雄联盟的信号；按住 Ctrl 拖动放表情。和朋友组队后，你发的信号、表情、文字会出现在队友屏幕上同样的位置，按住 V 说话队友直接听到。
 
@@ -36,12 +38,12 @@
 
 ## 下载
 
-到 [Releases](https://github.com/lijianqiao/lolGang/releases/latest) 下载：
+到 [Releases](https://github.com/lijianqiao/lolPing-rust/releases/latest) 下载：
 
 | 系统 | 文件 | 状态 |
 |---|---|---|
 | Windows 10、11 | `lolgang_<版本>_x64-setup.exe` | 正式支持 |
-| macOS 13 以上（Apple 芯片） | `lolgang_<版本>_aarch64.dmg` | 实验版，没在真机上测试过。要在「系统设置 → 隐私与安全性」里允许 lolGang 使用辅助功能和麦克风 |
+| macOS 13 以上（Apple 芯片） | `lolgang_<版本>_aarch64.dmg` | 实验版，没在真机上测试过。要在「系统设置 → 隐私与安全性」里允许 lolPing-rust 使用辅助功能和麦克风 |
 
 第一次运行时：
 
@@ -91,4 +93,4 @@ pnpm release                   # 本机打 Windows 安装包（不带更新签�
 
 代码用 [MIT 许可](LICENSE)。信号轮盘、信号动画、表情、队伍面板、投票、键鼠手势判定，以及 macOS 的键鼠监听，移植自 [lolPing](https://github.com/darrenprx/lolPing)（作者 Danrui Meng，MIT 许可），移植来的文件开头注明了来源。其他第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-信号图标、音效、表情来自英雄联盟，版权归 Riot Games 所有，不在 MIT 许可范围内。lolGang 不代表 Riot Games，也没有得到 Riot Games 的认可。
+信号图标、音效、表情来自英雄联盟，版权归 Riot Games 所有，不在 MIT 许可范围内。lolPing-rust 不代表 Riot Games，也没有得到 Riot Games 的认可。

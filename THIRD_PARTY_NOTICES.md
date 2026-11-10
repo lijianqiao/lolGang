@@ -2,7 +2,7 @@
 
 ## lolPing
 
-lolGang（原名钢一下）的信号轮盘、信号动画、表情（清单、表情动画和出场效果、导入和传输规则）、队伍面板、投票规则、队伍文字、键鼠手势判定、macOS 的键鼠监听、透明窗口的做法移植自 lolPing：<https://github.com/darrenprx/lolPing>。移植来的文件开头注明了来源。lolPing 的许可如下：
+lolPing-rust（原名 lolGang、钢一下；不是 lolPing 的官方版本，和 lolPing 的作者没有关系）的信号轮盘、信号动画、表情（清单、表情动画和出场效果、导入和传输规则）、队伍面板、投票规则、队伍文字、键鼠手势判定、macOS 的键鼠监听、透明窗口的做法移植自 lolPing：<https://github.com/darrenprx/lolPing>。移植来的文件开头注明了来源。lolPing 的许可如下：
 
 ```
 MIT License
@@ -304,4 +304,4 @@ https://datatracker.ietf.org/ipr/1526/
 
 `public/lol/` 里的信号图标、音效和表情（`public/lol/emotes/` 的图、动画、音效，由 lolPing 的 tools/extract-assets 从游戏里提取）来自英雄联盟，版权归 Riot Games 所有，不在上面的 MIT 许可范围内。
 
-lolGang 不代表 Riot Games，也没有得到 Riot Games 的认可，不反映 Riot Games 或任何正式参与制作、管理 Riot Games 产品的人的观点。Riot Games 及其相关财产是 Riot Games, Inc. 的商标或注册商标。如 Riot Games 提出要求，将删除这些素材。
+lolPing-rust 不代表 Riot Games，也没有得到 Riot Games 的认可，不反映 Riot Games 或任何正式参与制作、管理 Riot Games 产品的人的观点。Riot Games 及其相关财产是 Riot Games, Inc. 的商标或注册商标。如 Riot Games 提出要求，将删除这些素材。

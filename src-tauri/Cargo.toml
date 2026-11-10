@@ -4,9 +4,9 @@ version = "3.2.0"
 description = "常驻桌面的英雄联盟开黑小工具：屏幕上发信号、放表情、按住说话，队友同步看到"
 authors = ["lijianqiao"]
 license = "MIT"
-repository = "https://github.com/lijianqiao/lolGang"
+repository = "https://github.com/lijianqiao/lolPing-rust"
 # 安装包把它写进 Windows「已安装的应用」里的支持链接
-homepage = "https://github.com/lijianqiao/lolGang"
+homepage = "https://github.com/lijianqiao/lolPing-rust"
 edition = "2024"
 
 [lib]

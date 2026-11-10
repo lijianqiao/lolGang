@@ -109,7 +109,7 @@ export default function App() {
       <nav className="side">
         <div className="brand">
           <img src={logo} alt="" width={28} height={28} />
-          <span>lolGang</span>
+          <span>lolPing-rust</span>
         </div>
         {PAGES.map((p) => (
           <button

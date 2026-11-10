@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- lolGang 图标（原创）：金色菱形外框、深蓝底、海克斯蓝的信号波纹和发光的中心。
+  <!-- lolPing-rust 图标（原创）：金色菱形外框、深蓝底、海克斯蓝的信号波纹和发光的中心。
        改了这张图后重新生成程序图标：pnpm tauri icon src/assets/logo.svg -o <临时目录>，
        再把 src-tauri/icons 里已有的那些文件换掉（不要安卓、iOS 的）。 -->
   <defs>

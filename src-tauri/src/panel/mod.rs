@@ -313,7 +313,7 @@ impl Runner {
             &self.app,
             label,
             page,
-            "lolGang",
+            "lolPing-rust",
             which == Which::Text,
         );
         match built {

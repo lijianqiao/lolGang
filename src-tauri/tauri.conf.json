@@ -14,7 +14,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "lolGang",
+        "title": "lolPing-rust",
         "width": 1000,
         "height": 700,
         "minWidth": 720,
@@ -39,7 +39,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ3NTNDNDlFRTY4QjEzQjAKUldTd0U0dm1uc1JUMTBLc0RMV2xxTmFsckJOenc2U0VXNG00V0RORmFqWWpWODV5cDVkL0xsNysK",
       "endpoints": [
-        "https://github.com/lijianqiao/lolGang/releases/latest/download/latest.json"
+        "https://github.com/lijianqiao/lolPing-rust/releases/latest/download/latest.json"
       ],
       "requireSignedVersion": true,
       "windows": {

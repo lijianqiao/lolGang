@@ -78,9 +78,9 @@ jobs:
         run: |
           git fetch --force origin "refs/tags/${{ github.ref_name }}:refs/tags/${{ github.ref_name }}"
           git for-each-ref "refs/tags/${{ github.ref_name }}" --format='%(contents)' > notes.md
-          if [ ! -s notes.md ]; then echo "lolGang ${{ github.ref_name }}" > notes.md; fi
+          if [ ! -s notes.md ]; then echo "lolPing-rust ${{ github.ref_name }}" > notes.md; fi
       - run: node scripts/release.mjs manifest out "${{ github.ref_name }}" notes.md
       - name: 建 Release 并上传
-        run: gh release create "${{ github.ref_name }}" out/* --title "lolGang ${{ github.ref_name }}" --notes-file notes.md
+        run: gh release create "${{ github.ref_name }}" out/* --title "lolPing-rust ${{ github.ref_name }}" --notes-file notes.md
         env:
           GH_TOKEN: ${{ github.token }}

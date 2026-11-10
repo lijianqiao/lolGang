@@ -13,7 +13,7 @@ use crate::api;
 use crate::settings2::PanelRect;
 
 const TRAY_ID: &str = "main";
-const TOOLTIP: &str = "lolGang";
+const TOOLTIP: &str = "lolPing-rust";
 
 /// 「信号开启」这一项，开关变了要跟着勾上或取消。
 struct PingsItem(CheckMenuItem<Wry>);

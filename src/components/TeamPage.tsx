@@ -34,12 +34,12 @@ function memberLine(m: Member): string {
   return parts.join(" · ");
 }
 
-const DOWNLOAD_URL = "https://github.com/lijianqiao/lolGang/releases/latest";
+const DOWNLOAD_URL = "https://github.com/lijianqiao/lolPing-rust/releases/latest";
 
 /** 「复制邀请」复制的一段话：从哪下载、怎么进队、队伍码。短队伍码（GT3）旧版本不认，所以写明要哪个版本。 */
 function inviteText(code: string): string {
   const needs = code.startsWith("GT3") ? "（要 3.3.0 或更新的版本，旧版本不认这种队伍码）" : "";
-  return ["来 lolGang 开黑：", `1. 下载安装${needs}：${DOWNLOAD_URL}`, "2. 打开后点「队伍」→「进队」，粘贴下面这串队伍码：", code].join("\n");
+  return ["来 lolPing-rust 开黑：", `1. 下载安装${needs}：${DOWNLOAD_URL}`, "2. 打开后点「队伍」→「进队」，粘贴下面这串队伍码：", code].join("\n");
 }
 
 /** 他的电脑时间和本机差太多时的提示（Rust 给的是差多少分钟）。两个以上的队友都这样，多半是本机的时间不对。 */

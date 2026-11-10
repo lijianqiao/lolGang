@@ -624,7 +624,7 @@ pub fn tag_color(m: &MemberId) -> &'static str {
 }
 
 fn create_window(app: &AppHandle, label: &str) -> tauri::Result<WebviewWindow> {
-    let w = floating_window(app, label, "overlay.html", "lolGang overlay", false)?;
+    let w = floating_window(app, label, "overlay.html", "lolPing-rust overlay", false)?;
     w.set_ignore_cursor_events(true)?;
     Ok(w)
 }
