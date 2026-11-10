@@ -1,0 +1,31 @@
+# 依赖漏洞检查（3.3.0）：拿 src-tauri/Cargo.lock 对 RustSec 的公告库（cargo audit）。
+# 单独一个工作流：查到已知漏洞时只是这里红叉，不挡 CI 里的构建和测试。「不再维护」「版本被撤回」这类提醒不算失败，只在日志里列出来。
+# 什么时候跑：依赖变了（Cargo.lock 有改动推上来）；每周一一次（依赖没变，公告库也会有新的）；手动。
+name: 依赖漏洞检查
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src-tauri/Cargo.lock
+      - .github/workflows/audit.yml
+  schedule:
+    # 每周一 02:17 UTC（北京时间 10:17）
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # 直接下 cargo-audit 发布的可执行文件，不用每次从源码编译
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: cargo audit
+        working-directory: src-tauri
+        run: cargo audit
