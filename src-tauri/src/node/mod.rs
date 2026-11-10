@@ -11,6 +11,7 @@
 //!    Have 记下同伴（局域网地址、向量、每条路径的出现时间和周期），再做抑制、补齐和激活检查；
 //!    Want 把对方要的事件放进回应队列，从哪条路径来就从哪条路径回：局域网每秒 50 包，中继每秒 3 包。
 //!    Live（实时帧）：验签 → 发送者必须是队员 → 挡重放，通过的交给界面（`NodeEvent::Live`），不入库。
+//!    队员的帧因为两边系统时间差超过 10 分钟被丢时，告诉界面一声（`NodeEvent::ClockSkew`，同一个人一分钟一次，3.3.0）。
 //! 4. 定时器：Have 局域网 5 秒、中继 30 秒（±20% 抖动）；在线状态局域网 2 秒、中继 5 秒；
 //!    每 5 秒看一次网卡有没有变，变了就当作网络恢复：马上发 Have，中继立刻重连；延迟 Have（收到实时事件后 1–5 秒、
 //!    发现新同伴后 0–2 秒，期间被别人的 Have 覆盖就取消）；Want 超时换人；
@@ -25,7 +26,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tokio::sync::{mpsc, oneshot};
@@ -35,7 +36,7 @@ use crate::app_core::{Core, CoreEvent, RoomStatus};
 use crate::crypto::{EventId, MemberId, RoomId, RoomKey};
 use crate::protocol::event::SignedEvent;
 use crate::protocol::frame::{Frame, HaveEntry, ShortId, WantRange, WireEvent, short_id};
-use crate::protocol::live::{LiveBody, LiveSeq, ReplayGuard, WireLive, open_live};
+use crate::protocol::live::{LiveBody, LiveSeq, MAX_SKEW_MS, ReplayGuard, WireLive, open_live};
 use crate::protocol::packet::{PacketError, open_packet, peek_room_id, seal_packets};
 use crate::sync::path::{self, PathKind, PeerPaths, Via};
 use crate::sync::plan::{MAX_WANT_EVENTS, dominates, missing_total, ready_to_activate, state_gaps};
@@ -69,6 +70,13 @@ pub enum NodeEvent {
         from: MemberId,
         body: LiveBody,
         via: Via,
+    },
+    /// 队员的实时帧因为时间差太多被丢了（3.3.0）：两台电脑的系统时间差超过 10 分钟，信号、语音互相都收不到。
+    /// `skew_ms` 是对方的时间减本机的时间。同一个人一分钟最多通知一次。
+    ClockSkew {
+        room_id: RoomId,
+        from: MemberId,
+        skew_ms: i64,
     },
 }
 
@@ -229,10 +237,30 @@ impl NodeHandle {
 }
 
 pub fn now_ms() -> u64 {
-    SystemTime::now()
+    let real = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
+        .unwrap_or(0);
+    real.saturating_add_signed(test_clock_offset_ms())
+}
+
+/// 测试实例（`LOLGANG_INSTANCE=2/3`）可以用 `LOLGANG_TEST_CLOCK_MS` 把自己的时间拨快或拨慢（毫秒，可以是负数），
+/// 用来实测「两台电脑时间差太多」：同一台电脑上两个实例的系统时间没法不一样。正式身份不认这个环境变量。
+fn test_clock_offset_ms() -> i64 {
+    static OFFSET: OnceLock<i64> = OnceLock::new();
+    *OFFSET.get_or_init(|| {
+        test_clock_offset(
+            crate::dev_instance(),
+            std::env::var("LOLGANG_TEST_CLOCK_MS").ok().as_deref(),
+        )
+    })
+}
+
+fn test_clock_offset(instance: Option<u16>, var: Option<&str>) -> i64 {
+    match (instance, var) {
+        (Some(_), Some(v)) => v.trim().parse().unwrap_or(0),
+        _ => 0,
+    }
 }
 
 fn now_us() -> u64 {
@@ -370,6 +398,8 @@ struct RoomSync {
     want: Option<InFlightWant>,
     failures: HashMap<MemberId, u32>,
     told_dissolve: HashMap<MemberId, Instant>,
+    /// 上一次因为时间差太多通知界面是什么时候（同一个人一分钟一次）。
+    skew_told: HashMap<MemberId, Instant>,
 }
 
 pub struct Node {
@@ -398,6 +428,8 @@ pub struct Node {
 
 /// 多久看一次网卡有没有变。
 const NET_CHECK: Duration = Duration::from_secs(5);
+/// 同一个队员「时间差太多」多久通知界面一次。
+const SKEW_NOTE_EVERY: Duration = Duration::from_secs(60);
 
 /// 发给某位同伴的路径：在局域网上就单播，否则经中继（帧里带目标，其他人收到会忽略）。
 fn route_to(p: &Peer, now: Instant) -> Route {
@@ -528,6 +560,7 @@ impl Node {
                     want: None,
                     failures: HashMap::new(),
                     told_dissolve: HashMap::new(),
+                    skew_told: HashMap::new(),
                 },
             );
         }
@@ -819,6 +852,7 @@ impl Node {
                     .collect::<Vec<_>>()
                 {
                     rs.guard.forget(&gone);
+                    rs.skew_told.remove(&gone);
                 }
                 rs.members = members.into_iter().collect();
             }
@@ -841,11 +875,28 @@ impl Node {
         let Some(rs) = self.rooms.get_mut(&room) else {
             return;
         };
-        if !rs.members.contains(&opened.from)
-            || !rs
-                .guard
-                .accept(&opened.from, opened.seq, opened.ts_ms, now_ms())
-        {
+        if !rs.members.contains(&opened.from) {
+            return;
+        }
+        let now = now_ms();
+        // 时间差太多：帧照旧不要（挡重放要靠时间），但告诉界面一声，不然用户只看到「人在线、信号收不到」。
+        // 放在验签和「是队员」之后：外人伪造的帧不能让界面乱提示。
+        if opened.ts_ms.abs_diff(now) > MAX_SKEW_MS {
+            let due = rs
+                .skew_told
+                .get(&opened.from)
+                .is_none_or(|t| t.elapsed() >= SKEW_NOTE_EVERY);
+            if due {
+                rs.skew_told.insert(opened.from, Instant::now());
+                (self.sink)(NodeEvent::ClockSkew {
+                    room_id: room,
+                    from: opened.from,
+                    skew_ms: opened.ts_ms as i64 - now as i64,
+                });
+            }
+            return;
+        }
+        if !rs.guard.accept(&opened.from, opened.seq, opened.ts_ms, now) {
             return;
         }
         self.emit(NodeEvent::Live {

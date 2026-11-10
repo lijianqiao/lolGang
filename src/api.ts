@@ -148,6 +148,8 @@ export interface Member {
   path: "lan" | "relay" | "offline" | null;
   status: "online" | "paused" | "away" | null;
   platform: string | null;
+  /** 他的电脑时间和本机差太多（超过 10 分钟），信号和语音互相收不到：差多少分钟，对方快是正数。平常是 null。 */
+  clockSkewMin: number | null;
 }
 
 export interface TeamView {

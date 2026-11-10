@@ -34,6 +34,14 @@ function memberLine(m: Member): string {
   return parts.join(" · ");
 }
 
+/** 他的电脑时间和本机差太多时的提示（Rust 给的是差多少分钟）。两个以上的队友都这样，多半是本机的时间不对。 */
+function skewLine(min: number, several: boolean): string {
+  const abs = Math.abs(min);
+  const amount = abs >= 120 ? `约 ${Math.round(abs / 60)} 小时` : `约 ${abs} 分钟`;
+  const line = `对方电脑的时间比你的${min > 0 ? "快" : "慢"}${amount}，信号和语音互相收不到。请两边都检查系统时间。`;
+  return several ? `${line}多半是你这台电脑的时间不对。` : line;
+}
+
 function dotOf(m: Member): "online" | "away" | "paused" | "offline" {
   if (m.isMe) return "online";
   if (m.path === "offline" || m.path === null) return "offline";
@@ -242,6 +250,11 @@ function ActiveTeam({ view, busy, run }: { view: TeamView; busy: boolean; run: (
                 {m.isOwner && <span className="chip">队长</span>}
               </span>
               <small className="hint">{memberLine(m)}</small>
+              {m.clockSkewMin !== null && (
+                <small className="hint warn">
+                  {skewLine(m.clockSkewMin, view.members.filter((o) => o.clockSkewMin !== null).length >= 2)}
+                </small>
+              )}
             </div>
           </li>
         ))}

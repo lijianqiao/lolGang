@@ -72,6 +72,18 @@ pub fn on_node_event(app: &AppHandle, e: NodeEvent) {
     let Some(state) = app.try_state::<AppState>() else {
         return;
     };
+    // 收到他一帧正常的实时帧：时间已经对上了，「时间差太多」的提示去掉（文件头第 7 条）
+    if let NodeEvent::Live { from, .. } = &e
+        && state
+            .team
+            .skew
+            .lock()
+            .expect("队伍锁没有中毒")
+            .remove(from)
+            .is_some()
+    {
+        let _ = app.emit_to("main", "team://changed", ());
+    }
     match e {
         NodeEvent::Live { from, body, .. } => match body {
             LiveBody::Ping { display, x, y, id } => {
@@ -230,6 +242,15 @@ pub fn on_node_event(app: &AppHandle, e: NodeEvent) {
             let _ = app.emit_to("main", "team://mismatch", remote_proto);
         }
         NodeEvent::Core(_) | NodeEvent::RoomStatusChanged { .. } => refresh_names(app),
+        NodeEvent::ClockSkew { from, skew_ms, .. } => {
+            state
+                .team
+                .skew
+                .lock()
+                .expect("队伍锁没有中毒")
+                .insert(from, (Instant::now(), skew_ms));
+            let _ = app.emit_to("main", "team://changed", ());
+        }
         NodeEvent::Delivered { .. } => {}
     }
 }

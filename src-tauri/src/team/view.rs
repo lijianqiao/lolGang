@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
-use super::PRESENCE_STALE;
+use super::{PRESENCE_STALE, SKEW_FRESH};
 use crate::api::AppState;
 use crate::app_core::{AppError, Core, MemberView, RoomStatus, RoomSummary};
 use crate::crypto::hex;
@@ -95,6 +95,8 @@ pub struct MemberDto {
     /// online、paused、away；没收到在线状态时是 null。
     pub status: Option<&'static str>,
     pub platform: Option<String>,
+    /// 他的电脑时间和本机差太多（超过 10 分钟），信号和语音互相收不到：差多少分钟，对方快是正数。平常是 null。
+    pub clock_skew_min: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -159,6 +161,11 @@ fn status_name(s: Status) -> &'static str {
     }
 }
 
+/// 时间差的毫秒数 → 分钟，四舍五入：包在路上花的那几百毫秒不该让同一个差值在两边一个显示 10、一个显示 11。
+fn skew_minutes(ms: i64) -> i64 {
+    (ms as f64 / 60_000.0).round() as i64
+}
+
 /// 在节点任务里取的那一半：身份、当前队伍、队伍码、队员。
 type CoreSnapshot = (IdentityView, Option<(RoomSummary, String)>, Vec<MemberView>);
 
@@ -197,6 +204,7 @@ pub async fn view(app: &AppHandle) -> Result<TeamView, String> {
         .await
         .ok_or("网络模块停了")?;
     let presence = state.team.presence.lock().expect("在线状态锁没有中毒");
+    let skew = state.team.skew.lock().expect("队伍锁没有中毒");
     let members = members
         .into_iter()
         .map(|m| {
@@ -222,6 +230,10 @@ pub async fn view(app: &AppHandle) -> Result<TeamView, String> {
                 }),
                 status: seen.map(|s| status_name(s.status)),
                 platform: seen.map(|s| s.platform.clone()),
+                clock_skew_min: skew
+                    .get(&m.member_id)
+                    .filter(|(at, _)| at.elapsed() < SKEW_FRESH)
+                    .map(|(_, ms)| skew_minutes(*ms)),
             }
         })
         .collect();
@@ -249,6 +261,15 @@ pub async fn view(app: &AppHandle) -> Result<TeamView, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn skew_minutes_round_to_the_nearest_minute_on_both_sides() {
+        // 实测：实例 3 拨快 11 分钟，实例 2 量到的少了路上的几百毫秒，实例 3 量到的多了几百毫秒
+        assert_eq!(skew_minutes(659_600), 11);
+        assert_eq!(skew_minutes(-660_400), -11);
+        assert_eq!(skew_minutes(8 * 3_600_000), 480);
+        assert_eq!(skew_minutes(-29_000), 0);
+    }
 
     #[test]
     fn avatars_become_dtos() {

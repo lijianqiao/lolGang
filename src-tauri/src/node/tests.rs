@@ -302,6 +302,99 @@ async fn live_frames_from_non_members_and_replays_are_dropped() {
     remove_db(&db);
 }
 
+#[test]
+fn test_clock_offset_is_only_for_test_instances() {
+    assert_eq!(test_clock_offset(Some(3), Some("660000")), 660_000);
+    assert_eq!(test_clock_offset(Some(2), Some(" -660000 ")), -660_000);
+    assert_eq!(test_clock_offset(None, Some("660000")), 0, "正式身份不认");
+    assert_eq!(test_clock_offset(Some(2), None), 0);
+    assert_eq!(test_clock_offset(Some(2), Some("十分钟")), 0);
+}
+
+/// 收到过几次「`from` 的时间和本机差太多」的通知。
+fn skews_from(node: &TestNode, from: MemberId) -> Vec<i64> {
+    node.events
+        .lock()
+        .unwrap()
+        .iter()
+        .filter_map(|e| match e {
+            NodeEvent::ClockSkew {
+                from: f, skew_ms, ..
+            } if *f == from => Some(*skew_ms),
+            _ => None,
+        })
+        .collect()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn clock_skew_is_reported_once_per_member_and_only_for_verified_members() {
+    use crate::protocol::live::{MAX_SKEW_MS, sign_live};
+    let addrs = free_ports(3);
+    let (da, db) = (temp_db(), temp_db());
+    let (a, b, room) = pair(&da, &db, &addrs[..2]).await;
+    let key = a
+        .handle
+        .call(move |c, _| c.room_key(&room).unwrap())
+        .await
+        .unwrap();
+    let sock = UdpSocket::bind(addrs[2]).unwrap();
+    let send = |frame: &Frame| {
+        for p in seal_packets(&key, &room, frame).unwrap() {
+            sock.send_to(&p, addrs[0]).unwrap();
+        }
+    };
+    let b_id = member_id(&b).await;
+    // 比甲的时间快 11 分钟
+    let fast = now_ms() + MAX_SKEW_MS + 60_000;
+    let signed_by_b = |seq: u64| {
+        let handle = b.handle.clone();
+        async move {
+            handle
+                .call(move |c, _| c.sign_live(&room, seq, fast, &ping("danger")))
+                .await
+                .unwrap()
+        }
+    };
+
+    // 签名对不上的（改过时间戳）：不通知，否则外人能冒队员的名让界面乱提示
+    let mut forged = signed_by_b(1).await;
+    forged.2 += 1;
+    send(&Frame::Live(forged));
+    // 拿到了队伍码、却没进队的人：签名没问题，但不是队员，也不通知
+    let outsider = crate::crypto::Identity::from_secret(&[42u8; 32]);
+    send(&Frame::Live(sign_live(
+        &outsider,
+        &room,
+        1,
+        fast,
+        &ping("danger"),
+    )));
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(skews_from(&a, b_id).is_empty(), "签名不对的不通知");
+    assert!(
+        skews_from(&a, outsider.member_id()).is_empty(),
+        "不是队员的不通知"
+    );
+
+    // 队员的帧，时间差 11 分钟：通知一次，帧丢掉；紧接着的第二帧不再通知
+    send(&Frame::Live(signed_by_b(2).await));
+    send(&Frame::Live(signed_by_b(3).await));
+    assert!(wait_for(|| skews_from(&a, b_id).len() == 1).await);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    let skews = skews_from(&a, b_id);
+    assert_eq!(skews.len(), 1, "同一个人一分钟内只通知一次");
+    assert!(
+        (MAX_SKEW_MS as i64..MAX_SKEW_MS as i64 + 120_000).contains(&skews[0]),
+        "对方快了约 11 分钟，记成正数：{}",
+        skews[0]
+    );
+    assert!(a.lives_from(b_id).is_empty(), "时间差太多的帧不交给界面");
+
+    drop((a, b));
+    remove_db(&da);
+    remove_db(&db);
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn late_joiner_catches_up_and_activates() {
     let addrs = free_ports(3);

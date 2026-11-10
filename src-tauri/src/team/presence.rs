@@ -4,7 +4,7 @@ use std::sync::atomic::Ordering;
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use super::{AWAY_AFTER_MS, PRESENCE_STALE};
+use super::{AWAY_AFTER_MS, PRESENCE_STALE, SKEW_FRESH};
 use crate::api::AppState;
 use crate::crypto::MemberId;
 use crate::emotes;
@@ -36,7 +36,18 @@ pub fn watch(app: &AppHandle) {
         .map(|(m, s)| (*m, s.at.elapsed() < PRESENCE_STALE))
         .collect();
     fresh.sort();
-    let now = format!("{net:?}{fresh:?}");
+    // 「时间差太多」的提示到期了也要刷新一次
+    let mut skewed: Vec<MemberId> = state
+        .team
+        .skew
+        .lock()
+        .expect("队伍锁没有中毒")
+        .iter()
+        .filter(|(_, (at, _))| at.elapsed() < SKEW_FRESH)
+        .map(|(m, _)| *m)
+        .collect();
+    skewed.sort();
+    let now = format!("{net:?}{fresh:?}{skewed:?}");
     let mut watched = state.team.watched.lock().expect("队伍锁没有中毒");
     if watched.as_deref() != Some(now.as_str()) {
         *watched = Some(now);
