@@ -323,6 +323,20 @@ fn unpack(mut b: &[u8]) -> Vec<Vec<u8>> {
 mod tests {
     use super::*;
 
+    /// 随机输入（见 `fuzz.rs`）：库里存的语音弄坏了（长度写大了、截断了），拆包只是少拆出几帧，不越界。
+    #[test]
+    fn broken_voice_blobs_never_panic() {
+        let samples = vec![
+            pack(&[vec![1, 2, 3], vec![], vec![9; 300]]),
+            pack(&vec![vec![7u8; 40]; 20]),
+        ];
+        crate::fuzz::run("历史记录里的语音", &samples, |b| {
+            let frames = unpack(b);
+            let total: usize = frames.iter().map(|f| f.len() + 2).sum();
+            assert!(total <= b.len(), "拆出来的不会比存的多");
+        });
+    }
+
     #[test]
     fn voice_frames_pack_and_unpack() {
         let frames = vec![vec![1, 2, 3], vec![], vec![9; 300]];

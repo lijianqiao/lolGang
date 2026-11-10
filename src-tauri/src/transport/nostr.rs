@@ -19,6 +19,11 @@ use crate::crypto::{self, CryptoError, RoomId, hex};
 
 pub const KIND: u16 = 24810;
 const MAX_PACKET_LEN: usize = 1200;
+/// 包的 Base64 最多这么长；更长的不用解码就知道超了。
+const MAX_CONTENT_LEN: usize = MAX_PACKET_LEN.div_ceil(3) * 4;
+/// 中继发来的一条消息最多这么长。装着最大的包的事件约 2.1 KB（Base64 1600 字符，加上 id、公钥、签名、标签），
+/// `OK`、`NOTICE` 这些更短；留到 8 KB，超过的不解析直接丢。
+const MAX_MESSAGE_LEN: usize = 8 * 1024;
 
 fn unhex(s: &str) -> Option<Vec<u8>> {
     if !s.len().is_multiple_of(2) {
@@ -162,10 +167,15 @@ pub enum RelayMsg {
     Ignore,
 }
 
-fn parse_event(a: &[Value]) -> Option<RelayMsg> {
+fn parse_event(mut a: Vec<Value>) -> Option<RelayMsg> {
+    if a.len() < 3 {
+        return None;
+    }
+    // 把事件那一项拿出来用，不复制（swap_remove 只动第 2 项和最后一项，第 1 项还在原处）
+    let event = a.swap_remove(2);
     let sub = a.get(1)?.as_str()?.to_string();
-    let e: NostrEvent = serde_json::from_value(a.get(2)?.clone()).ok()?;
-    if e.kind != KIND {
+    let e: NostrEvent = serde_json::from_value(event).ok()?;
+    if e.kind != KIND || e.content.len() > MAX_CONTENT_LEN {
         return None;
     }
     let room_hex = e
@@ -196,16 +206,22 @@ fn parse_ok(a: &[Value]) -> Option<RelayMsg> {
 }
 
 pub fn parse_relay_message(text: &str) -> RelayMsg {
+    // 太长的先丢，不解析：坏掉或恶意的中继发来几百 KB 的消息，不该让这个线程把它整份解析成一棵树（3.3.0）
+    if text.len() > MAX_MESSAGE_LEN {
+        return RelayMsg::Ignore;
+    }
     let Ok(Value::Array(a)) = serde_json::from_str::<Value>(text) else {
         return RelayMsg::Ignore;
     };
-    let text_at = |i: usize| a.get(i).and_then(Value::as_str).unwrap_or("").to_string();
-    let parsed = match a.first().and_then(Value::as_str) {
-        Some("EVENT") => parse_event(&a),
-        Some("OK") => parse_ok(&a),
-        Some("EOSE") => Some(RelayMsg::Eose),
-        Some("CLOSED") => Some(RelayMsg::Closed(text_at(2))),
-        Some("NOTICE") => Some(RelayMsg::Notice(text_at(1))),
+    let text_at =
+        |a: &[Value], i: usize| a.get(i).and_then(Value::as_str).unwrap_or("").to_string();
+    let kind = a.first().and_then(Value::as_str).unwrap_or("").to_string();
+    let parsed = match kind.as_str() {
+        "EVENT" => parse_event(a),
+        "OK" => parse_ok(&a),
+        "EOSE" => Some(RelayMsg::Eose),
+        "CLOSED" => Some(RelayMsg::Closed(text_at(&a, 2))),
+        "NOTICE" => Some(RelayMsg::Notice(text_at(&a, 1))),
         _ => None,
     };
     parsed.unwrap_or(RelayMsg::Ignore)
@@ -351,6 +367,73 @@ mod tests {
             parse_relay_message(&format!(r#"["EVENT","hs",{bad_content}]"#)),
             RelayMsg::Ignore
         );
+    }
+
+    /// 太长的消息不解析就丢；装着最大的包（1200 字节）的事件照收，Base64 再长一组的不用解码就不收（3.3.0）。
+    #[test]
+    fn long_messages_are_dropped_and_the_largest_packet_still_fits() {
+        let big = build_event_with_aux(
+            &golden_key(),
+            &[2u8; 16],
+            &[9u8; MAX_PACKET_LEN],
+            1_700_000_000,
+            &[0u8; 32],
+        );
+        let text = format!(r#"["EVENT","hs",{}]"#, serde_json::to_string(&big).unwrap());
+        assert!(
+            text.len() < MAX_MESSAGE_LEN / 2,
+            "最大的事件 {} 字节，离上限很远",
+            text.len()
+        );
+        assert!(matches!(
+            parse_relay_message(&text),
+            RelayMsg::Event { packet, .. } if packet.len() == MAX_PACKET_LEN
+        ));
+        let mut over = big.clone();
+        over.content.push_str("AAAA");
+        let text = format!(
+            r#"["EVENT","hs",{}]"#,
+            serde_json::to_string(&over).unwrap()
+        );
+        assert_eq!(parse_relay_message(&text), RelayMsg::Ignore);
+
+        let ok_with = |n: usize| format!(r#"["OK","abc",true,"{}"]"#, "x".repeat(n));
+        let at_limit = ok_with(MAX_MESSAGE_LEN - ok_with(0).len());
+        assert_eq!(at_limit.len(), MAX_MESSAGE_LEN);
+        assert!(matches!(
+            parse_relay_message(&at_limit),
+            RelayMsg::Ok { accepted: true, .. }
+        ));
+        let over_limit = ok_with(MAX_MESSAGE_LEN - ok_with(0).len() + 1);
+        assert_eq!(parse_relay_message(&over_limit), RelayMsg::Ignore);
+    }
+
+    /// 随机输入（见 `fuzz.rs`）：中继发来的每种消息随机弄坏，解析和拒绝原因的分类都不能 panic。
+    #[test]
+    fn broken_relay_messages_never_panic() {
+        let event = |packet: &[u8]| {
+            let e =
+                build_event_with_aux(&golden_key(), &[2u8; 16], packet, 1_700_000_000, &[0u8; 32]);
+            format!(r#"["EVENT","hs",{}]"#, serde_json::to_string(&e).unwrap()).into_bytes()
+        };
+        let samples = vec![
+            event(&[3u8; 10]),
+            event(&[9u8; MAX_PACKET_LEN]),
+            br#"["OK","abc",false,"rate-limited: slow down"]"#.to_vec(),
+            br#"["CLOSED","hs","auth-required: x"]"#.to_vec(),
+            br#"["NOTICE","hello"]"#.to_vec(),
+            br#"["EOSE","hs"]"#.to_vec(),
+        ];
+        crate::fuzz::run("中继消息", &samples, |b| {
+            let text = String::from_utf8_lossy(b);
+            match parse_relay_message(&text) {
+                RelayMsg::Ok { message, .. } | RelayMsg::Closed(message) => {
+                    let _ = classify_rejection(&message);
+                }
+                RelayMsg::Event { packet, .. } => assert!(packet.len() <= MAX_PACKET_LEN),
+                _ => {}
+            }
+        });
     }
 
     /// 中继上谁都能发东西：一条消息（最多 256 KB）嵌套到最深、类型全不对、房间编号不是十六进制，都只是忽略，不爆栈。

@@ -126,6 +126,37 @@ impl Jitter {
 mod tests {
     use super::*;
 
+    /// 随机输入（见 `fuzz.rs`）：队友的语音包乱序、重复、有空档、结束帧放在中间、干脆没有结束帧——
+    /// 不管怎么来，不再来新包以后这段话一定放得完，不会一直占着扬声器。
+    /// 序号都在语音线程放行的范围里（`voice::frames_in_range`：一段话最多 2000 个小帧），范围外的包到不了这里。
+    #[test]
+    fn any_mix_of_packets_still_ends_the_stream() {
+        const MAX_FRAMES: usize = 2000;
+        let mut rng = crate::fuzz::Rng::new(0x71);
+        for round in 0..2_000 {
+            let mut j = Jitter::default();
+            let mut now = 1_000u64;
+            for _ in 0..rng.below(12) + 1 {
+                let count = rng.below(21);
+                let first = rng.below(MAX_FRAMES + 1 - count) as u32;
+                let frames = (0..count).map(|_| vec![0u8; rng.below(3)]).collect();
+                j.push(first, frames, rng.below(4) == 0, now);
+                now += rng.below(600) as u64;
+                for _ in 0..rng.below(30) {
+                    let _ = j.pull(now);
+                    now += FRAME_MS;
+                }
+            }
+            // 最多 2000 个小帧各取一次，加上攒的 0.5 秒、补的 5 个、等掉线的 2 秒，3000 次以内一定放完
+            let mut pulls = 0;
+            while j.pull(now) != Pull::Done {
+                now += FRAME_MS;
+                pulls += 1;
+                assert!(pulls < 3_000, "第 {round} 轮：这段话一直放不完");
+            }
+        }
+    }
+
     fn frames(from: u8, n: u8) -> Vec<Vec<u8>> {
         (from..from + n).map(|i| vec![i]).collect()
     }

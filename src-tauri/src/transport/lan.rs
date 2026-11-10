@@ -19,6 +19,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc;
 
 use super::flood::FloodGuard;
+use crate::protocol::packet::MAX_PACKET_LEN;
 
 pub const LAN_PORT: u16 = 47480;
 /// 算好的广播地址用多久再重新查网卡（文件头第 2 条）。
@@ -119,6 +120,10 @@ impl LanTransport {
                 if !guard.allow(from.ip(), started.elapsed().as_millis() as u64) {
                     continue;
                 }
+                // 我们的包最多 1200 字节，更长的不是我们的：不复制、不交给节点去解密（3.3.0）
+                if n > MAX_PACKET_LEN {
+                    continue;
+                }
                 if tx.send((from, buf[..n].to_vec())).await.is_err() {
                     break; // 节点已经停了
                 }
@@ -199,6 +204,19 @@ mod tests {
         );
         a.send_to(b.local_addr(), b"direct").await;
         assert_eq!(recv(&mut b_rx).await.unwrap().1, b"direct".to_vec());
+    }
+
+    #[tokio::test]
+    async fn packets_longer_than_ours_are_dropped_before_the_node_sees_them() {
+        let (b, mut b_rx) = LanTransport::bind(&loopback(vec![])).await.unwrap();
+        let (a, _a_rx) = LanTransport::bind(&loopback(vec![])).await.unwrap();
+        a.send_to(b.local_addr(), &vec![7u8; MAX_PACKET_LEN + 1])
+            .await;
+        a.send_to(b.local_addr(), &vec![8u8; MAX_PACKET_LEN]).await;
+        // 超长的那个先发：收到的第一个就是 1200 字节的，说明 1201 字节的没进通道
+        let (_, bytes) = recv(&mut b_rx).await.expect("1200 字节的包照收");
+        assert_eq!(bytes, vec![8u8; MAX_PACKET_LEN]);
+        assert!(recv(&mut b_rx).await.is_none());
     }
 
     #[tokio::test]

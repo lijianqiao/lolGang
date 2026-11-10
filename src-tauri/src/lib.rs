@@ -5,6 +5,8 @@ pub mod crash;
 pub mod crypto;
 pub mod emotes;
 pub mod error;
+#[cfg(test)]
+mod fuzz;
 pub mod history;
 pub mod identity;
 pub mod input;
