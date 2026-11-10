@@ -36,7 +36,7 @@ rusqlite = { version = "0.41", features = ["bundled", "fallible_uint"] }
 keyring = "4"
 tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt-multi-thread"] }
 if-addrs = "0.15"
-k256 = { version = "0.14", features = ["schnorr"] }
+k256 = { version = "0.14", features = ["precomputed-tables", "schnorr", "std"], default-features = false }
 base64 = "0.23"
 tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
