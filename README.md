@@ -2,7 +2,7 @@
 
 > 参考 [lolPing](https://github.com/darrenprx/lolPing)（作者 Danrui Meng，MIT 许可）用 Rust 重写的版本：信号、表情、组队、队伍面板、投票和打字沿用 lolPing 的做法，另外加了按住说话的语音、带历史记录的聊天框、6 种字幕特效，界面换成英雄联盟客户端的样子。
 >
-> **这不是 lolPing 的官方版本**：lolPing-rust 是独立的项目，和 lolPing 的作者没有关系，也不互通。3.3.0 以前叫 lolGang。
+> **这不是 lolPing 的官方版本**：lolPing-rust 是独立的项目，和 lolPing 的作者没有关系，也不互通。软件装好后在开始菜单和窗口上叫 **lolPing**。3.3.0 以前叫 lolGang。
 
 [![最新版本](https://img.shields.io/github/v/release/lijianqiao/lolPing-rust?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC)](https://github.com/lijianqiao/lolPing-rust/releases/latest)
 [![下载次数](https://img.shields.io/github/downloads/lijianqiao/lolPing-rust/total?label=%E4%B8%8B%E8%BD%BD)](https://github.com/lijianqiao/lolPing-rust/releases)
@@ -42,8 +42,9 @@
 
 | 系统 | 文件 | 状态 |
 |---|---|---|
-| Windows 10、11 | `lolgang_<版本>_x64-setup.exe` | 正式支持 |
-| macOS 13 以上（Apple 芯片） | `lolgang_<版本>_aarch64.dmg` | 实验版，没在真机上测试过。要在「系统设置 → 隐私与安全性」里允许 lolPing-rust 使用辅助功能和麦克风 |
+| Windows 10、11 | `lolping_<版本>_x64-setup.exe` | 正式支持 |
+| macOS 13 以上（Apple 芯片） | `lolping_<版本>_aarch64.dmg` | 实验版，没在真机上测试过。要在「系统设置 → 隐私与安全性」里允许 lolPing 使用辅助功能和麦克风 |
+| 3.2.0 及以前 | `lolgang_<版本>_…` | 那时叫 lolGang；装着的会自动更新成 lolPing，数据都在 |
 
 第一次运行时：
 
@@ -51,6 +52,9 @@
 - macOS 版没有经过苹果公证，提示「无法验证开发者」时，到「系统设置 → 隐私与安全性」里点「仍要打开」。
 
 装好后会自己检查新版本，在「关于」页点「更新并重启」即可升级。
+
+**同时装了原版 lolPing 的话**：两个程序名字一样，开始菜单和桌面上的快捷方式都叫 lolPing、是同一个文件，后装的会覆盖先装的。
+程序本身、数据、开机启动互不影响，可以同时运行。分不清时看「已安装的应用」里的发布者：这个项目的是 lijianqiao。
 
 ## 怎么用
 
@@ -93,4 +97,4 @@ pnpm release                   # 本机打 Windows 安装包（不带更新签�
 
 代码用 [MIT 许可](LICENSE)。信号轮盘、信号动画、表情、队伍面板、投票、键鼠手势判定，以及 macOS 的键鼠监听，移植自 [lolPing](https://github.com/darrenprx/lolPing)（作者 Danrui Meng，MIT 许可），移植来的文件开头注明了来源。其他第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-信号图标、音效、表情来自英雄联盟，版权归 Riot Games 所有，不在 MIT 许可范围内。lolPing-rust 不代表 Riot Games，也没有得到 Riot Games 的认可。
+信号图标、音效、表情来自英雄联盟，版权归 Riot Games 所有，不在 MIT 许可范围内。lolPing-rust（软件名 lolPing）不代表 Riot Games，也没有得到 Riot Games 的认可。

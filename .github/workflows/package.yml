@@ -44,6 +44,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: lolgang-${{ runner.os }}
+          name: lolping-${{ runner.os }}
           path: ${{ matrix.files }}
           if-no-files-found: error

@@ -84,11 +84,11 @@ export function AboutPage({ settings, onChange }: Props) {
       <h1>关于</h1>
       <UpdateCard settings={settings} onChange={onChange} />
       <section className="card prose">
-        <h2>lolPing-rust {version}</h2>
+        <h2>lolPing {version}</h2>
         <p>和开黑的朋友在桌面上互发英雄联盟信号和表情、说话、投票。免费，不需要服务器。</p>
         <p className="muted">
           Windows 正式支持；macOS 是实验版
-          <Tip text="macOS 没有在真机上验证过，要在「系统设置 → 隐私与安全性 → 辅助功能」里允许 lolPing-rust" />
+          <Tip text="macOS 没有在真机上验证过，要在「系统设置 → 隐私与安全性 → 辅助功能」里允许 lolPing" />
         </p>
       </section>
       <section className="card prose">
@@ -96,7 +96,9 @@ export function AboutPage({ settings, onChange }: Props) {
         <p>
           信号轮盘、信号动画、表情、队伍面板、投票、键鼠手势判定，以及 macOS 的键鼠监听，移植自 lolPing（作者 Danrui Meng，MIT 许可）。
         </p>
-        <p className="muted">lolPing-rust 不是 lolPing 的官方版本，是独立的项目，和 lolPing 的作者没有关系。</p>
+        <p className="muted">
+          这个 lolPing 是参考原版用 Rust 重写的独立项目（GitHub 上叫 lolPing-rust），不是原版 lolPing 的官方版本，和原版的作者没有关系，两者也不互通。
+        </p>
         <details>
           <summary>第三方声明全文</summary>
           <pre className="notices">{notices}</pre>
@@ -105,7 +107,7 @@ export function AboutPage({ settings, onChange }: Props) {
       <section className="card prose">
         <h2>素材声明</h2>
         <p>
-          轮盘和信号的图标、音效、表情来自英雄联盟，版权归 Riot Games 所有。lolPing-rust 不代表 Riot Games，也没有得到 Riot Games
+          轮盘和信号的图标、音效、表情来自英雄联盟，版权归 Riot Games 所有。lolPing 不代表 Riot Games，也没有得到 Riot Games
           的认可。如 Riot Games 提出要求，将删除这些素材。
         </p>
       </section>

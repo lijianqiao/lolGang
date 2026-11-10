@@ -2659,7 +2659,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
-name = "lolgang"
+name = "lolping"
 version = "3.2.0"
 dependencies = [
  "base64 0.23.1",

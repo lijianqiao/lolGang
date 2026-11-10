@@ -16,7 +16,7 @@ export function PermissionCard({ reason }: { reason: string }) {
           打开系统设置
         </button>
         <button className="soft" onClick={() => void relaunchApp()}>
-          授权好了，重开 lolPing-rust
+          授权好了，重开 lolPing
         </button>
       </div>
     </section>

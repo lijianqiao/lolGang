@@ -1,5 +1,5 @@
 [package]
-name = "lolgang"
+name = "lolping"
 version = "3.2.0"
 description = "常驻桌面的英雄联盟开黑小工具：屏幕上发信号、放表情、按住说话，队友同步看到"
 authors = ["lijianqiao"]
@@ -13,7 +13,7 @@ edition = "2024"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "lolgang_lib"
+name = "lolping_lib"
 # 只要 rlib：模板里的 staticlib、cdylib 是给手机端留的，桌面的 exe 用不到，留着每次构建多出两份产物（3.3.0）
 crate-type = ["rlib"]
 

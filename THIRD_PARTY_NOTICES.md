@@ -2,7 +2,7 @@
 
 ## lolPing
 
-lolPing-rust（原名 lolGang、钢一下；不是 lolPing 的官方版本，和 lolPing 的作者没有关系）的信号轮盘、信号动画、表情（清单、表情动画和出场效果、导入和传输规则）、队伍面板、投票规则、队伍文字、键鼠手势判定、macOS 的键鼠监听、透明窗口的做法移植自 lolPing：<https://github.com/darrenprx/lolPing>。移植来的文件开头注明了来源。lolPing 的许可如下：
+lolPing-rust（软件名 lolPing，原名 lolGang、钢一下；不是原版 lolPing 的官方版本，和原版的作者没有关系）的信号轮盘、信号动画、表情（清单、表情动画和出场效果、导入和传输规则）、队伍面板、投票规则、队伍文字、键鼠手势判定、macOS 的键鼠监听、透明窗口的做法移植自 lolPing：<https://github.com/darrenprx/lolPing>。移植来的文件开头注明了来源。lolPing 的许可如下：
 
 ```
 MIT License
