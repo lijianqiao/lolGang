@@ -1,6 +1,7 @@
 pub mod api;
 pub mod app_core;
 pub mod base32;
+pub mod crash;
 pub mod crypto;
 pub mod emotes;
 pub mod error;
@@ -64,6 +65,8 @@ fn use_small_async_runtime() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 最先装：后面任何一步 panic 都能记下来（数据目录定下来之后的才写得进文件，见 crash.rs）
+    crash::install();
     use_small_async_runtime();
     let mut builder = tauri::Builder::default();
     // 再次打开程序时不起新进程，而是把已经打开的控制面板调到前面。
@@ -195,6 +198,8 @@ fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         dir.push(format!("instance-{n}"));
     }
     std::fs::create_dir_all(&dir)?;
+    crash::set_dir(&dir);
+    crash::arm_test_panic(dev_instance());
     let db = storage::open(&dir.join("gang2.db"))?;
     let settings = storage::settings::load(&db)?;
     // 控制面板建好时藏着：开机启动就一直不显示（后面销毁），否则回到上次关掉时的位置再显示
