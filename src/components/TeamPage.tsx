@@ -34,6 +34,14 @@ function memberLine(m: Member): string {
   return parts.join(" · ");
 }
 
+const DOWNLOAD_URL = "https://github.com/lijianqiao/lolGang/releases/latest";
+
+/** 「复制邀请」复制的一段话：从哪下载、怎么进队、队伍码。短队伍码（GT3）旧版本不认，所以写明要哪个版本。 */
+function inviteText(code: string): string {
+  const needs = code.startsWith("GT3") ? "（要 3.3.0 或更新的版本，旧版本不认这种队伍码）" : "";
+  return ["来 lolGang 开黑：", `1. 下载安装${needs}：${DOWNLOAD_URL}`, "2. 打开后点「队伍」→「进队」，粘贴下面这串队伍码：", code].join("\n");
+}
+
 /** 他的电脑时间和本机差太多时的提示（Rust 给的是差多少分钟）。两个以上的队友都这样，多半是本机的时间不对。 */
 function skewLine(min: number, several: boolean): string {
   const abs = Math.abs(min);
@@ -168,7 +176,7 @@ function NoTeam({ busy, onCreate, onJoin }: { busy: boolean; onCreate: (t: strin
       <section className="card">
         <h2>
           进队
-          <Tip text="队伍码以 GT2 开头，向队长要" />
+          <Tip text="队伍码以 GT3 开头（3.2.0 及以前建的队伍是 GT2），向队长要" />
         </h2>
         <form
           className="inline-form"
@@ -177,7 +185,7 @@ function NoTeam({ busy, onCreate, onJoin }: { busy: boolean; onCreate: (t: strin
             onJoin(code);
           }}
         >
-          <input value={code} onChange={(e) => setCode(e.target.value)} aria-label="队伍码" placeholder="GT2-…" spellCheck={false} />
+          <input value={code} onChange={(e) => setCode(e.target.value)} aria-label="队伍码" placeholder="GT3-…" spellCheck={false} />
           <button className="primary" disabled={busy || !code.trim()}>
             进队
           </button>
@@ -189,14 +197,14 @@ function NoTeam({ busy, onCreate, onJoin }: { busy: boolean; onCreate: (t: strin
 
 function ActiveTeam({ view, busy, run }: { view: TeamView; busy: boolean; run: (p: Promise<TeamView>) => void }) {
   const team = view.team!;
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"invite" | "code" | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"leave" | "dissolve" | null>(null);
 
-  const copy = () => {
-    void navigator.clipboard.writeText(team.code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+  const copy = (what: "invite" | "code") => {
+    void navigator.clipboard.writeText(what === "invite" ? inviteText(team.code) : team.code).then(() => {
+      setCopied(what);
+      setTimeout(() => setCopied(null), 1500);
     });
   };
 
@@ -234,9 +242,12 @@ function ActiveTeam({ view, busy, run }: { view: TeamView; busy: boolean; run: (
       </div>
       <div className="code-row">
         <code className="team-code">{team.code}</code>
-        <button className="soft small" onClick={copy}>
+        <button className="soft small" onClick={() => copy("invite")}>
           <Icon name="copy" size={14} />
-          {copied ? "已复制" : "复制队伍码"}
+          {copied === "invite" ? "已复制" : "复制邀请"}
+        </button>
+        <button className="soft small" onClick={() => copy("code")}>
+          {copied === "code" ? "已复制" : "只复制队伍码"}
         </button>
       </div>
       <ul className="members">

@@ -2,7 +2,8 @@
 //!
 //! 实现流程：
 //! 1. 同一作者同一 seq 有多条（分叉）时，只取 event_id 最小的一条。
-//! 2. 队长：公钥摘要等于 owner_tag 的作者，且有能解码的 RoomCreate；取其 seq 最小的 RoomCreate。
+//! 2. 队长：有能解码的 RoomCreate、而且被队伍码的规则承认的作者（`room_code::OwnerRule`）：GT2 队伍是公钥摘要等于 owner_tag，
+//!    GT3 队伍（3.3.0）是「公钥 + 建队事件里的 salt」重算出的队伍码主体对得上；取其 seq 最小的 RoomCreate。
 //!    其他人发的 RoomCreate、Rename、Dissolve 一律不生效（队长信任根）。
 //! 3. 成员：每位作者 seq 最大的 Join / Leave 决定是否在队；昵称和头像取 seq 最大的 Profile
 //!    （这条 Profile 没带头像或头像不合格，就用自动生成的头像）。
@@ -16,7 +17,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::crypto::MemberId;
 use crate::protocol::body::{self, Avatar, ProfileBody, RenameBody, RoomCreateBody};
 use crate::protocol::event::{SignedEvent, kind};
-use crate::protocol::room_code::owner_tag_of;
+use crate::protocol::room_code::OwnerRule;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RoomState {
@@ -44,7 +45,13 @@ pub fn dedup_forks(events: &[SignedEvent]) -> BTreeMap<(MemberId, u64), &SignedE
     by_slot
 }
 
+/// GT2 队伍：房主是公钥摘要等于 `owner_tag` 的人。
 pub fn derive_room_state(owner_tag: &[u8; 10], events: &[SignedEvent]) -> RoomState {
+    derive_room_state_with(&OwnerRule::Tag(*owner_tag), events)
+}
+
+/// 两种队伍都用这个：认房主的规则由队伍码定（GT2 看公钥摘要，GT3 看建队事件里的 salt，见 `room_code::OwnerRule`）。
+pub fn derive_room_state_with(rule: &OwnerRule, events: &[SignedEvent]) -> RoomState {
     let by_slot = dedup_forks(events);
     let mut st = RoomState::default();
     let mut last_membership: BTreeMap<MemberId, bool> = BTreeMap::new();
@@ -52,7 +59,6 @@ pub fn derive_room_state(owner_tag: &[u8; 10], events: &[SignedEvent]) -> RoomSt
     // BTreeMap 按 (作者, seq) 升序遍历，同一作者后面的事件覆盖前面的
     for ((author, _seq), e) in &by_slot {
         let ev = &e.event;
-        let is_owner_key = owner_tag_of(author) == *owner_tag;
         match ev.kind {
             kind::JOIN => {
                 last_membership.insert(*author, true);
@@ -69,8 +75,10 @@ pub fn derive_room_state(owner_tag: &[u8; 10], events: &[SignedEvent]) -> RoomSt
                     };
                 }
             }
-            kind::ROOM_CREATE if is_owner_key => {
-                if let Ok(c) = body::decode::<RoomCreateBody>(&ev.body) {
+            kind::ROOM_CREATE => {
+                if let Ok(c) = body::decode::<RoomCreateBody>(&ev.body)
+                    && rule.admits(author, c.salt.as_ref())
+                {
                     if st.owner.is_none() {
                         st.owner = Some(*author);
                     }
@@ -103,6 +111,7 @@ mod tests {
     use crate::crypto::Identity;
     use crate::protocol::body::encode;
     use crate::protocol::event::build_event;
+    use crate::protocol::room_code::owner_tag_of;
 
     const ROOM: [u8; 16] = [1u8; 16];
 
@@ -122,8 +131,72 @@ mod tests {
             kind::ROOM_CREATE,
             encode(&RoomCreateBody {
                 title: title.into(),
+                salt: None,
             }),
         )
+    }
+
+    /// GT3 队伍的建队事件：带 salt。
+    fn create_with_salt(me: &Identity, seq: u64, title: &str, salt: [u8; 16]) -> SignedEvent {
+        state(
+            me,
+            seq,
+            seq * 1000,
+            kind::ROOM_CREATE,
+            encode(&RoomCreateBody {
+                title: title.into(),
+                salt: Some(salt),
+            }),
+        )
+    }
+
+    /// GT3：只有「公钥 + salt」对得上队伍码的人才是房主；队里的人知道 salt 和队伍码也冒充不了。
+    #[test]
+    fn short_code_team_only_admits_the_real_owner() {
+        use crate::protocol::room_code::{ShortCode, TeamCode};
+        let owner = person(1);
+        let mallory = person(2);
+        let salt = [9u8; 16];
+        let rule = TeamCode::V3(ShortCode::new(&owner.member_id(), &salt)).owner_rule();
+        let events = vec![
+            // 冒充的人排在前面（事件到达顺序不影响结果）：抄了房主的 salt、没带 salt、自己另取 salt，都不算
+            create_with_salt(&mallory, 1, "抢来的", salt),
+            create(&mallory, 2, "没带 salt"),
+            create_with_salt(&mallory, 3, "自己的 salt", [8; 16]),
+            state(&mallory, 4, 4000, kind::JOIN, vec![]),
+            rename(&mallory, 5, 5000, "乱改"),
+            state(&mallory, 6, 6000, kind::DISSOLVE, vec![]),
+            create_with_salt(&owner, 1, "开黑", salt),
+            state(&owner, 2, 2000, kind::JOIN, vec![]),
+        ];
+        let st = derive_room_state_with(&rule, &events);
+        assert_eq!(st.owner, Some(owner.member_id()));
+        assert_eq!(st.title.as_deref(), Some("开黑"));
+        assert_eq!(st.dissolve_ts, None, "不是房主，解散不生效");
+        assert_eq!(st.members.len(), 2);
+
+        // 房主自己发的建队事件没带 salt 也不算（GT3 里认房主全靠 salt）
+        let st = derive_room_state_with(&rule, &[create(&owner, 1, "开黑")]);
+        assert_eq!(st.owner, None);
+
+        // 房主的改名、解散照常生效
+        let mut events = events;
+        events.push(rename(&owner, 3, 3000, "五黑"));
+        events.push(state(&owner, 4, 4500, kind::DISSOLVE, vec![]));
+        let st = derive_room_state_with(&rule, &events);
+        assert_eq!(st.title.as_deref(), Some("五黑"));
+        assert_eq!(st.dissolve_ts, Some(4500));
+    }
+
+    /// GT2 队伍的规则没变：建队事件带不带 salt 都只看公钥摘要。
+    #[test]
+    fn long_code_team_ignores_salt() {
+        let owner = person(1);
+        let tag = owner_tag_of(&owner.member_id());
+        let with = derive_room_state(&tag, &[create_with_salt(&owner, 1, "开黑", [3; 16])]);
+        let without = derive_room_state(&tag, &[create(&owner, 1, "开黑")]);
+        assert_eq!(with.owner, Some(owner.member_id()));
+        assert_eq!(with, without);
     }
 
     fn rename(me: &Identity, seq: u64, ts: u64, title: &str) -> SignedEvent {

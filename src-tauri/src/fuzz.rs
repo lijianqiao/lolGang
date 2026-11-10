@@ -219,9 +219,11 @@ mod tests {
         })
     }
 
+    /// 建队事件的内容：短队伍码的队伍带 salt（3.3.0）。
     fn room_create() -> Vec<u8> {
         body::encode(&RoomCreateBody {
             title: "开黑".into(),
+            salt: Some([8; 16]),
         })
     }
 

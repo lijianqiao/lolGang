@@ -4,7 +4,7 @@
 use super::*;
 use crate::keystore::MemoryKeyStore;
 use crate::protocol::live::{LiveBody, open_live};
-use crate::protocol::room_code::{RoomCode, owner_tag_of};
+use crate::protocol::room_code::{RoomCode, TeamCode, owner_tag_of};
 use crate::storage;
 use crate::sync::plan::{ready_to_activate, state_gaps};
 
@@ -53,8 +53,11 @@ fn create_room_makes_me_owner_and_member() {
             .collect::<Vec<_>>(),
         vec![kind::ROOM_CREATE, kind::JOIN, kind::PROFILE]
     );
-    let code = RoomCode::parse(&created.code).unwrap();
-    assert_eq!(code.owner_tag, owner_tag_of(&a.identity().member_id));
+    // 新建的队伍用短队伍码（3.3.0）：GT3 加 20 个字符
+    assert!(created.code.starts_with("GT3-"));
+    assert_eq!(created.code.chars().filter(|c| *c != '-').count(), 3 + 20);
+    let code = TeamCode::parse(&created.code).unwrap();
+    assert!(matches!(code, TeamCode::V3(_)));
     assert_eq!(code.keys().1, room);
     assert_eq!(a.room_code(&room).unwrap(), created.code);
     let members = a.list_members(&room).unwrap();
@@ -62,6 +65,115 @@ fn create_room_makes_me_owner_and_member() {
     assert!(members[0].is_owner && members[0].in_room);
     assert_eq!(members[0].nickname.as_deref(), Some("阿钢"));
     assert_eq!(a.current_team().unwrap().map(|t| t.room_id), Some(room));
+}
+
+/// 3.2.0 及以前建的队伍（长队伍码 GT2）在新版本里照常：进得去、认得出房主、只有房主能改名和解散。
+#[test]
+fn long_code_teams_from_older_versions_still_work() {
+    let mut a = new_core();
+    a.set_profile("队长", None, 1).unwrap();
+    let created = a.create_room_v2("老队伍", 1000).unwrap();
+    let room = created.summary.room_id;
+    assert!(created.code.starts_with("GT2-"));
+    let code = RoomCode::parse(&created.code).unwrap();
+    assert_eq!(code.owner_tag, owner_tag_of(&a.identity().member_id));
+    assert_eq!(code.keys().1, room);
+    assert_eq!(a.room_code(&room).unwrap(), created.code);
+    assert!(created.summary.is_owner);
+
+    let mut b = new_core();
+    b.join_room(&created.code, 2000).unwrap();
+    b.ingest_events(&room, &a.room_events(&room).unwrap())
+        .unwrap();
+    assert!(b.owner_known(&room).unwrap());
+    let written = b.activate(&room, 3000).unwrap();
+    a.ingest_events(&room, &written).unwrap();
+    assert!(!b.summary(&room).unwrap().is_owner);
+    assert!(matches!(
+        b.rename_room(&room, "乱改", 4000),
+        Err(AppError::NotOwner)
+    ));
+    let renamed = a.rename_room(&room, "五黑", 5000).unwrap();
+    b.ingest_events(&room, &renamed).unwrap();
+    assert_eq!(b.summary(&room).unwrap().title.as_deref(), Some("五黑"));
+    let a_id = a.identity().member_id;
+    let owners: Vec<MemberId> = b
+        .list_members(&room)
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.is_owner)
+        .map(|m| m.member_id)
+        .collect();
+    assert_eq!(owners, vec![a_id]);
+}
+
+/// 短队伍码（GT3）的队伍：进队的人靠建队事件里的 salt 认出房主；只有房主能改名和解散；
+/// 队友自己写一条建队事件（抄房主的 salt 也好）不会变成房主。
+#[test]
+fn short_code_team_knows_its_owner_and_rejects_impostors() {
+    let (mut a, mut b, room) = pair();
+    let (a_id, b_id) = (a.identity().member_id, b.identity().member_id);
+    assert!(a.summary(&room).unwrap().is_owner);
+    assert!(!b.summary(&room).unwrap().is_owner);
+    for core in [&a, &b] {
+        let owners: Vec<MemberId> = core
+            .list_members(&room)
+            .unwrap()
+            .into_iter()
+            .filter(|m| m.is_owner)
+            .map(|m| m.member_id)
+            .collect();
+        assert_eq!(owners, vec![a_id], "两边都认甲是房主");
+    }
+    assert!(matches!(
+        b.rename_room(&room, "乱改", 4000),
+        Err(AppError::NotOwner)
+    ));
+    assert!(matches!(
+        b.dissolve_room(&room, 4000),
+        Err(AppError::NotOwner)
+    ));
+
+    // 乙绕过界面，自己签一条建队事件，salt 抄房主的：两边都不认
+    let salt = a
+        .room_events(&room)
+        .unwrap()
+        .iter()
+        .find(|e| e.event.kind == kind::ROOM_CREATE)
+        .and_then(|e| body::decode::<body::RoomCreateBody>(&e.event.body).ok())
+        .and_then(|c| c.salt)
+        .expect("短队伍码的建队事件带 salt");
+    let forged = events::append_own(
+        &b.conn,
+        &b.me,
+        &room,
+        kind::ROOM_CREATE,
+        body::encode(&body::RoomCreateBody {
+            title: "抢来的".into(),
+            salt: Some(salt),
+        }),
+        5000,
+    )
+    .unwrap();
+    rooms::apply_state(&b.conn, &room).unwrap();
+    a.ingest_events(&room, &[forged]).unwrap();
+    for core in [&a, &b] {
+        let s = core.summary(&room).unwrap();
+        assert_eq!(s.title.as_deref(), Some("开黑"));
+        assert!(
+            core.list_members(&room)
+                .unwrap()
+                .iter()
+                .all(|m| m.is_owner == (m.member_id == a_id))
+        );
+    }
+    assert!(!b.summary(&room).unwrap().is_owner);
+    let _ = b_id;
+
+    // 真房主的改名照常生效
+    let renamed = a.rename_room(&room, "五黑", 6000).unwrap();
+    b.ingest_events(&room, &renamed).unwrap();
+    assert_eq!(b.summary(&room).unwrap().title.as_deref(), Some("五黑"));
 }
 
 #[test]
@@ -308,7 +420,7 @@ fn peer_have_confirms_my_events() {
 #[test]
 fn room_key_matches_code_and_sync_rooms_skip_left() {
     let (a, mut b, room) = pair();
-    let code = RoomCode::parse(&a.room_code(&room).unwrap()).unwrap();
+    let code = TeamCode::parse(&a.room_code(&room).unwrap()).unwrap();
     assert_eq!(a.room_key(&room).unwrap(), code.keys().0);
     assert_eq!(b.sync_rooms().unwrap(), vec![(room, RoomStatus::Active)]);
     b.leave_room(&room, 5000).unwrap();

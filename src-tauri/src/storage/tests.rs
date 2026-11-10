@@ -5,6 +5,7 @@ use super::rooms::{self, RoomStatus};
 use super::*;
 use crate::crypto::Identity;
 use crate::protocol::event::{SignedEvent, build_event, kind, verify_stateless};
+use crate::protocol::room_code::OwnerRule;
 use crate::settings2::Settings;
 
 const ROOM: [u8; 16] = [1u8; 16];
@@ -104,12 +105,41 @@ fn next_seq_and_last_ts() {
     assert!(events::pending_own(&c, &ROOM, &id).unwrap().is_empty());
 }
 
+/// `owner_tag` 这一列按长度区分两种队伍：10 字节是 GT2 的房主公钥摘要，32 字节是 GT3 认房主的值；别的长度读不出来。
+/// 3.2.0 的库里只有 10 字节的，所以加 GT3 不用升级表结构。
+#[test]
+fn owner_column_holds_either_kind_of_rule() {
+    let c = open_in_memory().unwrap();
+    let short = OwnerRule::Commit([3u8; 32]);
+    assert!(rooms::insert_room(&c, &ROOM, b"cipher", &short, RoomStatus::Joining, 5).unwrap());
+    assert_eq!(rooms::get_room(&c, &ROOM).unwrap().unwrap().owner, short);
+    // 3.2.0 写的行：直接按那时的写法插一行 10 字节的
+    c.execute(
+        "INSERT INTO rooms (room_id, code_cipher, owner_tag, status, last_active) VALUES (?1, ?2, ?3, 1, 7)",
+        rusqlite::params![[9u8; 16], b"old".to_vec(), [4u8; 10]],
+    )
+    .unwrap();
+    assert_eq!(
+        rooms::get_room(&c, &[9u8; 16]).unwrap().unwrap().owner,
+        OwnerRule::Tag([4u8; 10])
+    );
+    assert_eq!(rooms::list_rooms(&c).unwrap().len(), 2);
+    c.execute(
+        "UPDATE rooms SET owner_tag = ?1 WHERE room_id = ?2",
+        rusqlite::params![vec![0u8; 11], [9u8; 16]],
+    )
+    .unwrap();
+    assert!(rooms::get_room(&c, &[9u8; 16]).is_err());
+}
+
 #[test]
 fn rooms_and_members() {
     let c = open_in_memory().unwrap();
-    assert!(rooms::insert_room(&c, &ROOM, b"cipher", &[2u8; 10], RoomStatus::Joining, 5).unwrap());
-    assert!(!rooms::insert_room(&c, &ROOM, b"other", &[2u8; 10], RoomStatus::Active, 6).unwrap());
+    let tag = OwnerRule::Tag([2u8; 10]);
+    assert!(rooms::insert_room(&c, &ROOM, b"cipher", &tag, RoomStatus::Joining, 5).unwrap());
+    assert!(!rooms::insert_room(&c, &ROOM, b"other", &tag, RoomStatus::Active, 6).unwrap());
     let r = rooms::get_room(&c, &ROOM).unwrap().unwrap();
+    assert_eq!(r.owner, tag);
     assert_eq!(r.status, RoomStatus::Joining);
     assert_eq!(r.code_cipher, b"cipher".to_vec());
     rooms::set_status(&c, &ROOM, RoomStatus::Active).unwrap();

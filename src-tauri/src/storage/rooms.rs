@@ -2,6 +2,8 @@
 //!
 //! 实现流程：
 //! 1. rooms 一行一个队伍：队伍码密文、owner_tag、状态，以及从状态事件推导出的缓存（队名、队长、解散时间）。
+//!    owner_tag 这一列放「怎么认房主」，按长度区分：GT2 队伍是房主公钥摘要（10 字节），
+//!    GT3 队伍（3.3.0）是由队伍码单向算出来的值（32 字节）。所以加 GT3 没改表结构，老库不用升级。
 //! 2. members 保存队伍里出现过的每个人：是否在队、昵称、头像。退出的人 in_room = 0。
 //!    2.0 的心之钢层数（stacks、taken 两列）3.0 不再读写，列留着，不改旧库。
 //! 3. 缓存都能从 events 重建，权威始终是重放结果。
@@ -12,6 +14,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::crypto::{MemberId, RoomId};
 use crate::error::AppResult;
+use crate::protocol::room_code::OwnerRule;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RoomStatus {
@@ -40,7 +43,8 @@ impl RoomStatus {
 pub struct RoomRow {
     pub room_id: RoomId,
     pub code_cipher: Vec<u8>,
-    pub owner_tag: [u8; 10],
+    /// 怎么认房主。存在 `owner_tag` 那一列，按长度区分：10 字节是 GT2 的房主公钥摘要，32 字节是 GT3 的认房主的值（3.3.0）。
+    pub owner: OwnerRule,
     pub status: RoomStatus,
     pub title: Option<String>,
     pub owner_id: Option<MemberId>,
@@ -63,7 +67,16 @@ fn read_room(r: &rusqlite::Row) -> rusqlite::Result<RoomRow> {
     Ok(RoomRow {
         room_id: r.get(0)?,
         code_cipher: r.get(1)?,
-        owner_tag: r.get(2)?,
+        owner: {
+            let raw: Vec<u8> = r.get(2)?;
+            OwnerRule::from_bytes(&raw).ok_or_else(|| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    2,
+                    rusqlite::types::Type::Blob,
+                    "owner_tag 既不是 10 字节也不是 32 字节".into(),
+                )
+            })?
+        },
         status: RoomStatus::from_db(r.get(3)?),
         title: r.get(4)?,
         owner_id: r.get(5)?,
@@ -77,13 +90,13 @@ pub fn insert_room(
     conn: &Connection,
     room: &RoomId,
     code_cipher: &[u8],
-    owner_tag: &[u8; 10],
+    owner: &OwnerRule,
     status: RoomStatus,
     now_ms: u64,
 ) -> AppResult<bool> {
     let n = conn.execute(
         "INSERT OR IGNORE INTO rooms (room_id, code_cipher, owner_tag, status, last_active) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![room, code_cipher, owner_tag, status.to_db(), now_ms],
+        params![room, code_cipher, owner.as_bytes(), status.to_db(), now_ms],
     )?;
     Ok(n == 1)
 }

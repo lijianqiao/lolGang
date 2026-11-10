@@ -21,6 +21,10 @@ pub const AVATAR_PRESET_COLORS: u8 = 12;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoomCreateBody {
     pub title: String,
+    /// GT3 队伍码（3.3.0）的建队事件带着它：队友用「作者公钥 + salt」重算队伍码的主体来认房主（`room_code::OwnerRule`）。
+    /// GT2 队伍的建队事件没有这一项，编码出来和以前一个字节不差。
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "serde_bytes")]
+    pub salt: Option<[u8; 16]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,8 +103,28 @@ mod tests {
     fn roundtrip_all_bodies() {
         let create = RoomCreateBody {
             title: "开黑".into(),
+            salt: None,
         };
+        // 没有 salt 的建队事件（GT2 队伍）编码出来和 3.2.0 一个字节不差：事件 ID 是按这些字节算的
+        assert_eq!(
+            encode(&create),
+            [
+                0xa1, 0x65, b't', b'i', b't', b'l', b'e', 0x66, 0xe5, 0xbc, 0x80, 0xe9, 0xbb, 0x91
+            ]
+        );
         assert_eq!(decode::<RoomCreateBody>(&encode(&create)), Ok(create));
+        // GT3 队伍的建队事件带 16 字节的 salt；长度不对的解不出来（这条事件就不生效）
+        let with_salt = RoomCreateBody {
+            title: "开黑".into(),
+            salt: Some([7; 16]),
+        };
+        let bytes = encode(&with_salt);
+        assert_eq!(decode::<RoomCreateBody>(&bytes), Ok(with_salt));
+        let short_salt: Vec<u8> = bytes[..bytes.len() - 1].to_vec();
+        let mut short_salt = short_salt;
+        let at = short_salt.len() - 16;
+        short_salt[at] = 0x4f; // 字节串的长度从 16 改成 15
+        assert_eq!(decode::<RoomCreateBody>(&short_salt), Err(BodyError));
         let rename = RenameBody {
             title: "五黑".into(),
         };

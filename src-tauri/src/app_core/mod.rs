@@ -149,6 +149,23 @@ impl Core {
         })
     }
 
+    /// 测试用：照 3.2.0 及以前的做法建一个长队伍码（GT2）的队伍。
+    #[cfg(test)]
+    pub fn create_room_v2(&mut self, title: &str, now_ms: u64) -> AppResult<CreatedRoom> {
+        self.require_no_team()?;
+        let profile = self.my_profile();
+        let tx = self.conn.transaction()?;
+        let (room, code, written) =
+            rooms::create_room_v2(&tx, &self.me, &self.master, &profile, title, now_ms)?;
+        let summary = rooms::summary(&self.view.member_id, &rooms::get(&tx, &room)?);
+        tx.commit()?;
+        Ok(CreatedRoom {
+            summary,
+            code,
+            events: written,
+        })
+    }
+
     pub fn join_room(&mut self, code: &str, now_ms: u64) -> AppResult<RoomSummary> {
         self.require_no_team()?;
         let tx = self.conn.transaction()?;
@@ -418,7 +435,7 @@ impl Core {
 /// 只有队长、且队伍是 Active 时才能改名、解散。
 fn require_active_owner(conn: &Connection, me: &MemberId, room: &RoomId) -> AppResult<()> {
     let row = rooms::get(conn, room)?;
-    if crate::protocol::room_code::owner_tag_of(me) != row.owner_tag {
+    if !row.owner.is_owner(me, row.owner_id.as_ref()) {
         return Err(AppError::NotOwner);
     }
     if row.status != RoomStatus::Active {
