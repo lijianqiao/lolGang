@@ -466,10 +466,11 @@ p .tip {
   border-color: var(--line-hi);
   color: var(--text);
 }
+/* 固定定位：不算进页面宽度，靠右的图标也不会撑出横向滚动条。位置由 controls.tsx 的 placeTip 在显示前算好 */
 .tip-body {
-  position: absolute;
-  left: -10px;
-  bottom: calc(100% + 8px);
+  position: fixed;
+  left: 0;
+  top: 0;
   z-index: 10;
   width: max-content;
   max-width: 280px;
