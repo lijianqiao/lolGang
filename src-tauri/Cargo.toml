@@ -38,13 +38,15 @@ tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt-multi-
 if-addrs = "0.15"
 k256 = { version = "0.14", features = ["precomputed-tables", "schnorr", "std"], default-features = false }
 base64 = "0.23"
-tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.30", features = ["__rustls-tls", "connect", "handshake"], default-features = false }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-updater = "2"
 cpal = "0.18"
 opus-rs = "0.1"
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7.1"
 
 
 # 只有 input/win32.rs、input/macos.rs 能写 unsafe（这两个文件开头放开了），别处写了编译不过（3.2.0）

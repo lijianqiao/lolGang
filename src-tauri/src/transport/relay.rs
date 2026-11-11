@@ -19,15 +19,20 @@
 //! 6. 状态表放在共享的 `Mutex` 里，连接任务写、调度任务和 `status()` 读；中继变为可用时唤醒调度任务。
 //! 7. 回显统计（3.2.0）：每个中继记发出并等回显的事件数、收到回显的数、最近 50 个的回显成功率和平均往返时间，
 //!    队伍页「中继」那一行的说明里能看到（也标出正在发给哪几个）。断线时还没等到的算没回显。
+//! 8. TLS（3.3.1）：`wss://` 用 rustls（Rust 写的，Windows 和 macOS 行为一样），不再用系统自带的（Windows 的 SChannel、macOS 已过时的 Secure Transport）。
+//!    证书交给系统验证（`rustls-platform-verifier`，和自动更新用的一样）：用系统的证书库，服务器少发了中间证书时系统会自己去取，行为和以前接近。
+//!    加密算法用 `ring`（自动更新那边已经在用），整个程序共用一份配置（`tls_config`）。rustls 只支持 TLS 1.2 和 1.3：
+//!    默认的 8 个中继都是 TLS 1.3（2026-11-12 量过），用户自己填的只支持老 TLS 的中继会连不上（所有者接受）。
 
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::{Notify, mpsc, watch};
 use tokio::task::JoinHandle;
 use tokio::time::{MissedTickBehavior, sleep, timeout};
+use tokio_tungstenite::Connector;
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 
@@ -269,6 +274,26 @@ fn unix_secs() -> u64 {
         .unwrap_or(0)
 }
 
+/// 连中继用的 TLS 配置（文件头第 8 条）。第一次用到时建，之后共用；建不起来（系统证书验证初始化失败）时每次连接都直接失败、照常退避重连。
+fn tls_config() -> Result<&'static Arc<rustls::ClientConfig>, &'static str> {
+    static CONFIG: OnceLock<Result<Arc<rustls::ClientConfig>, String>> = OnceLock::new();
+    CONFIG
+        .get_or_init(|| build_tls_config().map(Arc::new))
+        .as_ref()
+        .map_err(String::as_str)
+}
+
+fn build_tls_config() -> Result<rustls::ClientConfig, String> {
+    use rustls_platform_verifier::BuilderVerifierExt;
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    Ok(rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|e| e.to_string())?
+        .with_platform_verifier()
+        .map_err(|e| e.to_string())?
+        .with_no_client_auth())
+}
+
 fn set_state(health: &Health, index: usize, state: RelayState) {
     if let Ok(mut h) = health.lock() {
         h[index].state = state;
@@ -493,8 +518,15 @@ impl Connection {
         let ws_cfg = WebSocketConfig::default()
             .max_message_size(Some(256 << 10))
             .max_frame_size(Some(256 << 10));
-        let connect =
-            tokio_tungstenite::connect_async_with_config(self.url.as_str(), Some(ws_cfg), true);
+        let Ok(tls) = tls_config() else {
+            return End::Reconnect { healthy: false };
+        };
+        let connect = tokio_tungstenite::connect_async_tls_with_config(
+            self.url.as_str(),
+            Some(ws_cfg),
+            true,
+            Some(Connector::Rustls(tls.clone())),
+        );
         let Ok(Ok((ws, _))) = timeout(self.cfg.connect_timeout, connect).await else {
             return End::Reconnect { healthy: false };
         };
@@ -630,6 +662,20 @@ impl Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// TLS 配置建得起来：用的是 ring、只开 TLS 1.2 和 1.3、证书交给系统验证。
+    #[test]
+    fn tls_config_uses_ring_and_the_system_verifier() {
+        let cfg = tls_config().expect("TLS 配置建得起来");
+        assert!(
+            !cfg.crypto_provider().cipher_suites.is_empty(),
+            "ring 提供了加密套件"
+        );
+        // 第二次拿到的是同一份
+        assert!(Arc::ptr_eq(cfg, tls_config().unwrap()));
+        // 不要客户端证书；ALPN 不设（WebSocket 不需要）
+        assert!(cfg.alpn_protocols.is_empty());
+    }
 
     fn relay(state: RelayState, sent: u64, pct: u8, avg: u64) -> RelayHealth {
         RelayHealth {
