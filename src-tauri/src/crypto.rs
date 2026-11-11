@@ -22,13 +22,26 @@ pub type RoomId = [u8; 16];
 pub type MemberId = [u8; 32];
 pub type EventId = [u8; 32];
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CryptoError {
-    #[error("系统随机数不可用")]
     Random,
-    #[error("解密失败：密钥不对或数据被改动")]
     Open,
 }
+
+// 会经 AppError 显示给用户，按界面语言出（3.3.2）
+impl std::fmt::Display for CryptoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            CryptoError::Random => crate::tr!("系统随机数不可用", "系统随机数不可用"),
+            CryptoError::Open => crate::tr!(
+                "解密失败：密钥不对或数据被改动",
+                "解密失败：密钥不对或数据被改动"
+            ),
+        })
+    }
+}
+
+impl std::error::Error for CryptoError {}
 
 /// 依次喂入多段数据，返回 SHA-256 摘要。
 pub fn sha256(parts: &[&[u8]]) -> [u8; 32] {

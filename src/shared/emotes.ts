@@ -2,6 +2,7 @@
 // 规则（引用的形状、轮盘合法性、导入检查）在 Rust 的 emotes 模块，这里只拼地址。参考 lolPing src/shared/emotes.ts（MIT，© 2026 Danrui Meng）。
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { EMOTE_CATALOG } from "./emoteCatalog";
+import { k, t } from "../i18n";
 
 /** 表情在屏幕上停留的秒数。 */
 export const EMOTE_DURATION_S = 3;
@@ -17,8 +18,8 @@ export interface CustomEmote {
   fx: number;
 }
 
-/** 出场效果的名字，下标就是效果号。 */
-export const FX_NAMES = ["弹出", "旋转", "落下弹跳", "闪现", "摆荡", "心跳"] as const;
+/** 出场效果的名字，下标就是效果号；显示时 t(名字)。 */
+export const FX_NAMES = [k("弹出"), k("旋转"), k("落下弹跳"), k("闪现"), k("摆荡"), k("心跳")] as const;
 
 export const isBundled = (ref: string): boolean => EMOTE_CATALOG.some((e) => e.slug === ref);
 /** `c:` 加 32 位十六进制里的哈希。 */
@@ -40,5 +41,5 @@ export function emoteName(ref: string, custom: readonly CustomEmote[]): string {
   const c = custom.find((x) => x.id === ref);
   if (c) return c.name;
   const e = EMOTE_CATALOG.find((x) => x.slug === ref);
-  return e ? e.nameZh : "未知表情";
+  return e ? e.nameZh : t("未知表情");
 }

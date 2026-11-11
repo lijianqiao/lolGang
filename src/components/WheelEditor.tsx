@@ -4,6 +4,8 @@ import { useState } from "react";
 import { previewPing } from "../api";
 import { ALL_PINGS, pingById, textureUrl, type PingId } from "../shared/pings";
 import { Icon } from "./Icon";
+import { k, t } from "../i18n";
+import { tj } from "../i18n/react";
 
 /** 把 id 放到第 slot 格；它已经在别的格子里就两格互换。 */
 export function placeOnSlot<T>(wheel: readonly T[], id: T, slot: number): T[] {
@@ -20,7 +22,8 @@ export const slotPos = (i: number): { left: string; top: string } => {
   return { left: `${50 + 37 * Math.cos(a)}%`, top: `${50 + 37 * Math.sin(a)}%` };
 };
 
-export const DIRECTIONS = ["上", "右上", "右", "右下", "下", "左下", "左", "左上"];
+/** 8 个方向，显示时 t(方向)。 */
+export const DIRECTIONS = [k("上"), k("右上"), k("右"), k("右下"), k("下"), k("左下"), k("左"), k("左上")];
 
 export function WheelEditor({ wheel, onChange }: { wheel: PingId[]; onChange: (w: PingId[]) => void }) {
   const [slot, setSlot] = useState(0);
@@ -28,7 +31,7 @@ export function WheelEditor({ wheel, onChange }: { wheel: PingId[]; onChange: (w
 
   return (
     <div className="wheel-editor">
-      <div className="mini-wheel" role="group" aria-label="轮盘的 8 格">
+      <div className="mini-wheel" role="group" aria-label={t("轮盘的 8 格")}>
         <div className="mini-ring" />
         <div className="mini-core">PING</div>
         {wheel.map((id, i) => {
@@ -39,7 +42,7 @@ export function WheelEditor({ wheel, onChange }: { wheel: PingId[]; onChange: (w
               className={`mini-slot${i === slot ? " selected" : ""}`}
               style={slotPos(i)}
               onClick={() => setSlot(i)}
-              aria-label={`${DIRECTIONS[i]}：${def?.name ?? id}`}
+              aria-label={t("{dir}：{name}", { dir: t(DIRECTIONS[i]), name: def ? t(def.name) : id })}
               aria-pressed={i === slot}
             >
               {def && <img src={textureUrl(def.icon)} alt="" />}
@@ -50,26 +53,26 @@ export function WheelEditor({ wheel, onChange }: { wheel: PingId[]; onChange: (w
       <div className="wheel-side">
         <p className="wheel-pick">
           <span>
-            向{DIRECTIONS[slot]}拖：<b>{selected?.name}</b>
+            {tj("向{dir}拖：{name}", { dir: t(DIRECTIONS[slot]), name: <b>{selected && t(selected.name)}</b> })}
           </span>
           {selected && (
             <button className="soft small" onClick={() => void previewPing(selected.id)}>
               <Icon name="play" size={14} />
-              预览
+              {t("预览")}
             </button>
           )}
         </p>
-        <p className="muted">换成：</p>
+        <p className="muted">{t("换成：")}</p>
         <div className="palette">
           {ALL_PINGS.map((p) => (
             <button
               key={p.id}
               className={`palette-item${p.id === wheel[slot] ? " current" : ""}`}
               onClick={() => onChange(placeOnSlot(wheel, p.id, slot))}
-              title={p.name}
+              title={t(p.name)}
             >
               <img src={textureUrl(p.icon)} alt="" />
-              <span>{p.name}</span>
+              <span>{t(p.name)}</span>
             </button>
           ))}
         </div>

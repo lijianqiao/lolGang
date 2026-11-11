@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 // 头像压缩（沿用 1.x）：在界面里把图片裁成正方形画到画布上再导出 WebP，64 像素起压到 800 字节以内，
 // 放不下就逐步缩小、降画质，然后交给 Rust（Rust 侧再按文件头和大小检查一遍）。
 
@@ -11,7 +12,7 @@ const AVATAR_MAX_BYTES = 800;
 
 function canvasBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("图片导出失败"))), "image/webp", quality),
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(t("图片导出失败")))), "image/webp", quality),
   );
 }
 
@@ -28,12 +29,12 @@ export async function compressForAvatar(file: Blob): Promise<Compressed> {
   try {
     img = await createImageBitmap(file);
   } catch {
-    throw new Error("读不了这张图片，换一张试试");
+    throw new Error(t("读不了这张图片，换一张试试"));
   }
   const side = Math.min(img.width, img.height);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("图片处理失败");
+  if (!ctx) throw new Error(t("图片处理失败"));
   try {
     for (const s of [64, 56, 48, 40, 32]) {
       canvas.width = s;
@@ -49,5 +50,5 @@ export async function compressForAvatar(file: Blob): Promise<Compressed> {
   } finally {
     img.close();
   }
-  throw new Error("这张图做不成头像，换一张简单点的");
+  throw new Error(t("这张图做不成头像，换一张简单点的"));
 }

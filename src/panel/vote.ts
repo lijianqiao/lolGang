@@ -1,7 +1,7 @@
 // 投票窗口：投降和踢人在屏幕右边，准备确认在中间。能点、不拿焦点。Rust 推 "vote:state" 就重画。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
+import { onLangChange } from "../i18n"; // 界面语言（3.3.2）
 import { runCountdown, voteCard, type VoteDto } from "./shared";
 import "./panel.css";
 
@@ -22,4 +22,5 @@ function render(v: VoteDto | null): void {
 }
 
 void listen<VoteDto | null>("vote:state", (e) => render(e.payload));
+onLangChange(() => render(current?.v ?? null)); // 换了语言就重画按钮上的字（3.3.2）
 void invoke<VoteDto | null>("vote_view").then(render);

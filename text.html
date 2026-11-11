@@ -7,18 +7,19 @@
   <body>
     <section class="chat">
       <header class="cap">
-        <div class="tabs" role="tablist" aria-label="只看">
-          <button type="button" role="tab" data-filter="all" aria-selected="true">全部</button>
-          <button type="button" role="tab" data-filter="text" aria-selected="false">文字</button>
-          <button type="button" role="tab" data-filter="voice" aria-selected="false">语音</button>
-          <button type="button" role="tab" data-filter="signal" aria-selected="false">信号和表情</button>
+        <!-- 按钮上的字和下面输入框的提示由 src/text/main.ts 按界面语言填（3.3.2） -->
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" data-filter="all" aria-selected="true"></button>
+          <button type="button" role="tab" data-filter="text" aria-selected="false"></button>
+          <button type="button" role="tab" data-filter="voice" aria-selected="false"></button>
+          <button type="button" role="tab" data-filter="signal" aria-selected="false"></button>
         </div>
-        <button type="button" id="close" aria-label="收起聊天框">✕</button>
+        <button type="button" id="close">✕</button>
       </header>
       <ol id="log" aria-live="polite"></ol>
       <form class="box">
         <div class="line">
-          <input id="message" type="text" autocomplete="off" spellcheck="false" placeholder="对队友说…" aria-label="对队友说的话" />
+          <input id="message" type="text" autocomplete="off" spellcheck="false" />
           <span id="count" hidden></span>
         </div>
         <div id="hint"></div>

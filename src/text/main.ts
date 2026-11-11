@@ -6,7 +6,7 @@
 // 输入部分参考 lolPing src/renderer/text/main.ts（MIT，© 2026 Danrui Meng）。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
+import { k, onLangChange, t, type Key } from "../i18n"; // 界面语言（3.3.2）
 import type { Settings, TeamView } from "../api";
 import { el } from "../shared/dom";
 import { emoteIcon, emoteName, type CustomEmote } from "../shared/emotes";
@@ -16,12 +16,14 @@ import "./text.css";
 const MAX = 120;
 /** 剩最后 20 个字时显示计数。 */
 const COUNT_FROM = MAX - 20;
-const HINT = "回车发送，Esc 收起。/ff 投降　/noff 反对投降　/ready 准备确认";
-const ANSWERS: Record<string, string> = {
-  unknown: "不认识这个指令。可以用 /ff、/noff、/ready",
-  votesOff: "投票关着，在控制面板的「功能」页打开",
-  busy: "已经有一个投票在进行",
+const hintText = (): string => t("回车发送，Esc 收起。/ff 投降　/noff 反对投降　/ready 准备确认");
+const ANSWERS: Record<string, Key> = {
+  unknown: k("不认识这个指令。可以用 /ff、/noff、/ready"),
+  votesOff: k("投票关着，在控制面板的「功能」页打开"),
+  busy: k("已经有一个投票在进行"),
 };
+/** 筛选按钮上的字（按 data-filter）。 */
+const TAB_TEXT: Record<string, Key> = { all: k("全部"), text: k("文字"), voice: k("语音"), signal: k("信号和表情") };
 
 /** 和 Rust 的 history::EntryDto 对应。 */
 interface Entry {
@@ -70,7 +72,7 @@ function signal(icon: string, words: string): HTMLElement {
 function label(b: HTMLButtonElement): void {
   const on = Number(b.dataset.id) === playing;
   b.classList.toggle("playing", on);
-  b.setAttribute("aria-label", on ? `停止，${b.dataset.secs} 秒语音` : `播放 ${b.dataset.secs} 秒语音`);
+  b.setAttribute("aria-label", on ? t("停止，{n} 秒语音", { n: b.dataset.secs ?? "" }) : t("播放 {n} 秒语音", { n: b.dataset.secs ?? "" }));
 }
 
 function voiceButton(e: Entry): HTMLButtonElement {
@@ -92,7 +94,7 @@ function voiceButton(e: Entry): HTMLButtonElement {
 function row(e: Entry): HTMLLIElement {
   // 行的类名带 k- 前缀，免得和里面的按钮（.voice）撞名
   const li = el("li", `entry k-${e.kind}${e.me ? " me" : ""}`);
-  const who = el("b", "who", e.me ? "我" : (names.get(e.memberId) ?? "队友"));
+  const who = el("b", "who", e.me ? t("我") : (names.get(e.memberId) ?? t("队友")));
   who.style.color = e.color;
   const head = el("div", "head");
   head.append(who, el("time", "", time(e.ts)));
@@ -101,8 +103,8 @@ function row(e: Entry): HTMLLIElement {
   else if (e.kind === "voice") li.append(voiceButton(e));
   else if (e.kind === "ping") {
     const def = pingById(e.text);
-    li.append(signal(textureUrl(def?.icon ?? "pingwheel_basicpingrender"), `发了「${def?.name ?? e.text}」`));
-  } else li.append(signal(emoteIcon(e.text), `发了表情「${emoteName(e.text, custom)}」`));
+    li.append(signal(textureUrl(def?.icon ?? "pingwheel_basicpingrender"), t("发了「{name}」", { name: def ? t(def.name) : e.text })));
+  } else li.append(signal(emoteIcon(e.text), t("发了表情「{name}」", { name: emoteName(e.text, custom) })));
   return li;
 }
 
@@ -112,7 +114,7 @@ function nearBottom(): boolean {
 
 function render(): void {
   const shown = entries.filter(shows);
-  log.replaceChildren(...(shown.length ? shown.map(row) : [el("li", "empty", "还没有记录")]));
+  log.replaceChildren(...(shown.length ? shown.map(row) : [el("li", "empty", t("还没有记录"))]));
   log.scrollTop = log.scrollHeight;
 }
 
@@ -142,10 +144,10 @@ void listen<number | null>("voice:playing", ({ payload }) => {
   for (const b of log.querySelectorAll<HTMLButtonElement>("button.voice")) label(b);
 });
 
-for (const t of tabs) {
-  t.addEventListener("click", () => {
-    filter = t.dataset.filter as Filter;
-    for (const x of tabs) x.setAttribute("aria-selected", String(x === t));
+for (const tab of tabs) {
+  tab.addEventListener("click", () => {
+    filter = tab.dataset.filter as Filter;
+    for (const x of tabs) x.setAttribute("aria-selected", String(x === tab));
     render();
     input.focus();
   });
@@ -178,10 +180,10 @@ async function send(): Promise<void> {
     if (answer === "sent" || answer === "empty") {
       input.value = "";
       clamp();
-      showHint(HINT, false);
+      showHint(hintText(), false);
       return;
     }
-    showHint(ANSWERS[answer] ?? HINT, true);
+    showHint(ANSWERS[answer] ? t(ANSWERS[answer]) : hintText(), true);
   } catch (e) {
     showHint(String(e), true);
   } finally {
@@ -198,7 +200,7 @@ const close = (): void => {
 // 输入法正在拼字时不截断（会打断拼写），回车是确认候选字。
 input.addEventListener("input", (e) => {
   if (!(e as InputEvent).isComposing) clamp();
-  showHint(HINT, false);
+  showHint(hintText(), false);
 });
 input.addEventListener("compositionend", clamp);
 // 表单从不提交（发送走回车的处理）：内容安全策略不让在 HTML 里写 onsubmit，在这里拦（3.1.1）
@@ -222,13 +224,28 @@ document.getElementById("close")?.addEventListener("click", close);
 window.addEventListener("blur", () => void invoke("text_cancel"));
 
 void listen("text:open", () => {
-  showHint(HINT, false);
+  showHint(hintText(), false);
   void reload();
   requestAnimationFrame(() => input.focus());
 });
 // 第一次打开时页面还没加载完，"text:open" 已经发过了：加载完时取一次记录，窗口拿到焦点时把光标放进输入框。
 window.addEventListener("focus", () => input.focus());
-showHint(HINT, false);
+/** 页面上固定的字（text.html 里只有结构）：筛选按钮、收起按钮、输入框的提示。 */
+function labels(): void {
+  for (const tab of tabs) tab.textContent = t(TAB_TEXT[tab.dataset.filter ?? "all"] ?? "全部");
+  document.querySelector(".tabs")?.setAttribute("aria-label", t("只看"));
+  document.getElementById("close")?.setAttribute("aria-label", t("收起聊天框"));
+  input.placeholder = t("对队友说…");
+  input.setAttribute("aria-label", t("对队友说的话"));
+}
+// 换了语言（3.3.2）：固定的字、记录、没在报错时的提示都重来
+onLangChange(() => {
+  labels();
+  render();
+  if (!hint.classList.contains("warn")) showHint(hintText(), false);
+});
+labels();
+showHint(hintText(), false);
 clamp();
 void reload();
 requestAnimationFrame(() => input.focus());

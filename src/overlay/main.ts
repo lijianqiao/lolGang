@@ -2,7 +2,7 @@
 // 它在空闲时报告一声，让 Rust 把窗口挪开。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
+import { t } from "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
 import { FALLBACK_TEXTURE, TICK_SOUND, allSoundNames, pingById, soundUrl, textureUrl } from "../shared/pings";
 import { bundledSoundUrl, customHash, customUrl, emoteIcon, isBundled, type CustomEmote } from "../shared/emotes";
 import { EmoteStage, type EmoteArt } from "./emoteStage";
@@ -155,7 +155,7 @@ function voicePill(text: string, cls: string, color?: string): HTMLElement {
 }
 void listen<VoiceState>("voice:state", ({ payload: v }) => {
   const pills = v.others.map((o) => voicePill(o.name, "other", o.color));
-  if (v.me !== null) pills.push(voicePill(`正在录音 ${v.me} 秒`, "me"));
+  if (v.me !== null) pills.push(voicePill(t("正在录音 {n} 秒", { n: v.me }), "me"));
   voiceLayer.replaceChildren(...pills);
 });
 

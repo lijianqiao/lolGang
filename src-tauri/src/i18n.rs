@@ -5,7 +5,8 @@
 //!    macOS 是系统的首选语言。中文（简体、繁体都算）→ 中文，其他所有语言 → English。系统语言改了，下次启动才跟着变。
 //! 3. 各个网页窗口怎么知道语言：透明窗口和三个小窗口建窗口时塞一段初始化脚本（`window.__LOLPING_LANG__`，`overlay::floating_window`），
 //!    控制面板从 `status_get` 拿；之后语言变了发 `lang://changed`（内容是 `"zh"` 或 `"en"`）给所有窗口。都不用给窗口加新权限。
-//! 4. 只写进日志的文字（`eprintln!`、崩溃报告）不翻译，照旧中文。
+//! 4. Rust 里给用户看的话写成 [`tr!`](crate::tr)`(中文, English)`，两种都写在用的地方，漏了一种编译不过。
+//!    只写进日志的文字（`eprintln!`、崩溃报告）和只在程序内部流转的错误（协议、数据库内部）不翻译，照旧中文。
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -34,6 +35,17 @@ impl Lang {
 
 static CURRENT: AtomicU8 = AtomicU8::new(0); // 0 中文、1 English；设置读出来以前先当中文
 
+/// 给用户看的一句话：按当前语言取中文或英文（3.3.2）。两种都要写；只有选中的那个会被求值，可以放 `format!`。
+#[macro_export]
+macro_rules! tr {
+    ($zh:expr, $en:expr $(,)?) => {
+        match $crate::i18n::current() {
+            $crate::i18n::Lang::Zh => $zh,
+            $crate::i18n::Lang::En => $en,
+        }
+    };
+}
+
 /// 现在用的语言。
 pub fn current() -> Lang {
     if CURRENT.load(Ordering::Relaxed) == 1 {
@@ -45,11 +57,15 @@ pub fn current() -> Lang {
 
 /// 换语言；返回是不是真的变了。
 pub fn set(lang: Lang) -> bool {
+    swap(&CURRENT, lang)
+}
+
+fn swap(cell: &AtomicU8, lang: Lang) -> bool {
     let v = match lang {
         Lang::Zh => 0,
         Lang::En => 1,
     };
-    CURRENT.swap(v, Ordering::Relaxed) != v
+    cell.swap(v, Ordering::Relaxed) != v
 }
 
 /// 系统语言的标签（比如 `zh-CN`、`en-US`）→ 中文或 English。
@@ -110,12 +126,19 @@ mod tests {
     }
 
     #[test]
-    fn set_reports_whether_the_language_changed() {
-        set(Lang::Zh);
-        assert!(!set(Lang::Zh));
-        assert!(set(Lang::En));
-        assert_eq!(current(), Lang::En);
-        assert!(set(Lang::Zh));
+    fn swap_reports_whether_the_language_changed() {
+        // 用自己的格子测，不动全局的当前语言：别的测试按中文断言提示文字，并行跑时不能被换成英文
+        let cell = AtomicU8::new(0);
+        assert!(!swap(&cell, Lang::Zh));
+        assert!(swap(&cell, Lang::En));
+        assert!(!swap(&cell, Lang::En));
+        assert!(swap(&cell, Lang::Zh));
+    }
+
+    #[test]
+    fn tr_picks_the_current_language() {
+        // 测试里全局语言一直是中文（没有测试会改它）
         assert_eq!(current(), Lang::Zh);
+        assert_eq!(crate::tr!("中文", "English"), "中文");
     }
 }

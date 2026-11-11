@@ -3,7 +3,7 @@
 // 能点、不拿焦点。每次显示时取一次队伍信息；做法参考 lolPing src/renderer/panel/roster.ts（MIT，© 2026 Danrui Meng）。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
+import { k, onLangChange, t, type Key } from "../i18n"; // 界面语言（3.3.2）
 import type { Member, TeamView } from "../api";
 import { hueOf, initialOf, PRESET_COLORS, PRESET_ICONS } from "../avatars";
 import { el } from "../shared/dom";
@@ -18,8 +18,8 @@ let current: { v: VoteDto; bar: HTMLElement } | null = null;
 /** 正在说话的队员（公钥的十六进制），那一行亮起。 */
 let speaking = new Set<string>();
 
-const PATH: Record<string, string> = { lan: "局域网", relay: "中继", offline: "离线" };
-const STATUS: Record<string, string> = { online: "在线", paused: "信号暂停", away: "离开电脑" };
+const PATH: Record<string, Key> = { lan: k("局域网"), relay: k("中继"), offline: k("离线") };
+const STATUS: Record<string, Key> = { online: k("在线"), paused: k("信号暂停"), away: k("离开电脑") };
 
 function portrait(m: Member): HTMLElement {
   const p = el("span", "portrait");
@@ -40,9 +40,9 @@ function portrait(m: Member): HTMLElement {
 }
 
 function line(m: Member): string {
-  if (m.isMe) return "这台电脑";
-  if (m.path === "offline" || m.path === null) return "离线";
-  return [m.status ? STATUS[m.status] : "在线", PATH[m.path]].join(" · ");
+  if (m.isMe) return t("这台电脑");
+  if (m.path === "offline" || m.path === null) return t("离线");
+  return [t(m.status ? STATUS[m.status] : "在线"), t(PATH[m.path])].join(" · ");
 }
 
 async function act(p: Promise<unknown>): Promise<void> {
@@ -64,7 +64,7 @@ function memberRow(m: Member): HTMLElement {
   row.append(portrait(m), who);
   if (!m.isMe) {
     const kick = el("button", "kick", "✕");
-    kick.title = `投票踢出 ${m.nickname || m.fingerprint}`;
+    kick.title = t("投票踢出 {name}", { name: m.nickname || m.fingerprint });
     kick.setAttribute("aria-label", kick.title);
     kick.addEventListener("click", () => void act(invoke("vote_start", { kind: "kick", target: m.memberId })));
     row.append(kick);
@@ -75,10 +75,10 @@ function memberRow(m: Member): HTMLElement {
 function render(): void {
   const head = el("header", "cap");
   const title = el("div", "team-title");
-  title.append(el("b", "", team?.team?.title ?? "队伍"), el("span", "count", `${team?.members.length ?? 0} / 16`));
-  const ff = el("button", "lol-btn", "投降");
+  title.append(el("b", "", team?.team?.title ?? t("队伍")), el("span", "count", `${team?.members.length ?? 0} / 16`));
+  const ff = el("button", "lol-btn", t("投降"));
   ff.addEventListener("click", () => void act(invoke("vote_start", { kind: "ff" })));
-  const ready = el("button", "lol-btn", "准备确认");
+  const ready = el("button", "lol-btn", t("准备确认"));
   ready.addEventListener("click", () => void act(invoke("vote_start", { kind: "ready" })));
   head.append(ff, title, ready);
 
@@ -109,6 +109,7 @@ async function load(): Promise<void> {
   render();
 }
 
+onLangChange(render); // 换了语言就重画（3.3.2）
 void listen<string[]>("roster:speaking", (e) => {
   speaking = new Set(e.payload);
   if (team) render();

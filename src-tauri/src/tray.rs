@@ -17,14 +17,23 @@ use crate::settings2::PanelRect;
 const TRAY_ID: &str = "main";
 const TOOLTIP: &str = "lolPing";
 
-// 菜单上的字。换语言时 `relabel` 照这些重写一遍（3.3.2）。
-const PINGS_TEXT: &str = "信号开启";
-const OPEN_TEXT: &str = "打开控制面板";
-const QUIT_TEXT: &str = "退出";
+// 菜单上的字，按当前语言。换语言时 `relabel` 照这些重写一遍（3.3.2）。
+fn pings_text() -> &'static str {
+    crate::tr!("信号开启", "信号开启")
+}
+fn open_text() -> &'static str {
+    crate::tr!("打开控制面板", "打开控制面板")
+}
+fn quit_text() -> &'static str {
+    crate::tr!("退出", "退出")
+}
 
 /// 「检查更新」，查到新版本时是「更新到 vX」。
 fn update_text(version: Option<&str>) -> String {
-    version.map_or_else(|| "检查更新".to_string(), |v| format!("更新到 v{v}"))
+    match version {
+        None => crate::tr!("检查更新", "检查更新").to_string(),
+        Some(v) => crate::tr!(format!("更新到 v{v}"), format!("更新到 v{v}")),
+    }
 }
 
 /// 菜单里字会变的几项：开关变了「信号开启」跟着勾上或取消；查到新版本「检查更新」变成「更新到 vX」；换语言时都重写。
@@ -133,10 +142,10 @@ pub fn remember_main(window: &Window) {
 }
 
 pub fn setup(app: &tauri::App, enabled: bool) -> tauri::Result<()> {
-    let pings = CheckMenuItem::with_id(app, "pings", PINGS_TEXT, true, enabled, None::<&str>)?;
-    let open = MenuItem::with_id(app, "open", OPEN_TEXT, true, None::<&str>)?;
+    let pings = CheckMenuItem::with_id(app, "pings", pings_text(), true, enabled, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", open_text(), true, None::<&str>)?;
     let update = MenuItem::with_id(app, "update", update_text(None), true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", QUIT_TEXT, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", quit_text(), true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
         &[
@@ -213,9 +222,9 @@ pub fn set_update_label(app: &AppHandle, version: Option<&str>) {
 /// 换了语言：菜单上的字全部重写（3.3.2）。
 pub fn relabel(app: &AppHandle) {
     if let Some(items) = app.try_state::<Items>() {
-        let _ = items.pings.set_text(PINGS_TEXT);
-        let _ = items.open.set_text(OPEN_TEXT);
-        let _ = items.quit.set_text(QUIT_TEXT);
+        let _ = items.pings.set_text(pings_text());
+        let _ = items.open.set_text(open_text());
+        let _ = items.quit.set_text(quit_text());
         let version = items.update_version.lock().ok().and_then(|v| v.clone());
         let _ = items.update.set_text(update_text(version.as_deref()));
     }

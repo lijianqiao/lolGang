@@ -234,7 +234,7 @@ impl Actor {
                             &d.key,
                             "text:spawn",
                             json!({
-                                "owner": "preview", "text": "大龙刷了，集合打团！", "name": "我", "color": "#c8aa6e",
+                                "owner": "preview", "text": crate::tr!("大龙刷了，集合打团！", "大龙刷了，集合打团！"), "name": crate::tr!("我", "我"), "color": "#c8aa6e",
                                 "style": style, "size": size, "effect": effect, "x": w / 2.0, "y": h / 2.0,
                             }),
                         );
@@ -423,7 +423,7 @@ impl Actor {
             .names
             .get(&from)
             .cloned()
-            .unwrap_or_else(|| "队友".into());
+            .unwrap_or_else(|| crate::tr!("队友", "队友").into());
         let owner = hex(&from[..6]);
         self.show(
             &d.key,
@@ -447,7 +447,7 @@ impl Actor {
             .names
             .get(&from)
             .cloned()
-            .unwrap_or_else(|| "队友".into());
+            .unwrap_or_else(|| crate::tr!("队友", "队友").into());
         let tag = json!({ "name": name, "color": tag_color(&from) });
         self.show(
             &d.key,
@@ -466,10 +466,13 @@ impl Actor {
         let (owner, name, color) = match from {
             Some(m) => (
                 hex(&m[..6]),
-                self.names.get(&m).cloned().unwrap_or_else(|| "队友".into()),
+                self.names
+                    .get(&m)
+                    .cloned()
+                    .unwrap_or_else(|| crate::tr!("队友", "队友").into()),
                 tag_color(&m),
             ),
-            None => ("self".into(), "我".into(), "#c8aa6e"),
+            None => ("self".into(), crate::tr!("我", "我").into(), "#c8aa6e"),
         };
         self.show(
             &d.key,
@@ -524,7 +527,11 @@ impl Actor {
         let list: Vec<serde_json::Value> = others
             .iter()
             .map(|m| {
-                let name = self.names.get(m).cloned().unwrap_or_else(|| "队友".into());
+                let name = self
+                    .names
+                    .get(m)
+                    .cloned()
+                    .unwrap_or_else(|| crate::tr!("队友", "队友").into());
                 json!({ "name": name, "color": tag_color(m) })
             })
             .collect();

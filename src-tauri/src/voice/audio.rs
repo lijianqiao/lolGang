@@ -55,7 +55,7 @@ pub type MicBuffer = Arc<Mutex<Vec<f32>>>;
 
 /// 开麦克风：录到的声音（16 kHz 单声道）追加到 `buffer`。
 pub fn open_mic(id: &str, buffer: MicBuffer) -> Result<Stream, String> {
-    let dev = mic_device(id).ok_or("找不到麦克风")?;
+    let dev = mic_device(id).ok_or(crate::tr!("找不到麦克风", "找不到麦克风"))?;
     let cfg = dev.default_input_config().map_err(|e| e.to_string())?;
     let (channels, rate) = (usize::from(cfg.channels()).max(1), cfg.sample_rate());
     let config = cfg.config();
@@ -64,7 +64,12 @@ pub fn open_mic(id: &str, buffer: MicBuffer) -> Result<Stream, String> {
         SampleFormat::I16 => build_mic::<i16>(&dev, config, channels, rate, buffer),
         SampleFormat::U16 => build_mic::<u16>(&dev, config, channels, rate, buffer),
         SampleFormat::I32 => build_mic::<i32>(&dev, config, channels, rate, buffer),
-        f => return Err(format!("麦克风的采样格式 {f} 不支持")),
+        f => {
+            return Err(crate::tr!(
+                format!("麦克风的采样格式 {f} 不支持"),
+                format!("麦克风的采样格式 {f} 不支持")
+            ));
+        }
     }?;
     stream.play().map_err(|e| e.to_string())?;
     Ok(stream)
@@ -110,7 +115,7 @@ pub struct Speaker {
 pub fn open_speaker() -> Result<Speaker, String> {
     let dev = cpal::default_host()
         .default_output_device()
-        .ok_or("找不到扬声器")?;
+        .ok_or(crate::tr!("找不到扬声器", "找不到扬声器"))?;
     let cfg = dev.default_output_config().map_err(|e| e.to_string())?;
     let (channels, rate) = (usize::from(cfg.channels()).max(1), cfg.sample_rate());
     let config = cfg.config();
@@ -121,7 +126,12 @@ pub fn open_speaker() -> Result<Speaker, String> {
         SampleFormat::I16 => build_speaker::<i16>(&dev, config, channels, q),
         SampleFormat::U16 => build_speaker::<u16>(&dev, config, channels, q),
         SampleFormat::I32 => build_speaker::<i32>(&dev, config, channels, q),
-        f => return Err(format!("扬声器的采样格式 {f} 不支持")),
+        f => {
+            return Err(crate::tr!(
+                format!("扬声器的采样格式 {f} 不支持"),
+                format!("扬声器的采样格式 {f} 不支持")
+            ));
+        }
     }?;
     stream.play().map_err(|e| e.to_string())?;
     Ok(Speaker {

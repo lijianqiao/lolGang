@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { suspendInput } from "../api";
 import { UNSAFE_TRIGGER_VKS, codeToVk, eventMods, hotkeyParts, isModifierCode, MOD, vkLabel, type Hotkey } from "../shared/keys";
+import { t } from "../i18n";
 
 type Props =
   | { kind: "key"; value: number | null; onPick: (vk: number) => void }
@@ -32,14 +33,14 @@ export function KeyCapture(props: Props) {
       if (e.code === "Escape") return stop();
       if (isModifierCode(e.code)) return; // 等真正的键
       const vk = codeToVk(e.code);
-      if (vk === null) return setHint("这个键认不出来，换一个");
+      if (vk === null) return setHint(t("这个键认不出来，换一个"));
       const p = latest.current;
       if (p.kind === "key" || p.kind === "plain") {
-        if (p.kind === "key" && UNSAFE_TRIGGER_VKS.includes(vk)) return setHint(`${vkLabel(vk)} 会影响正常打字，换一个`);
+        if (p.kind === "key" && UNSAFE_TRIGGER_VKS.includes(vk)) return setHint(t("{key} 会影响正常打字，换一个", { key: vkLabel(vk) }));
         p.onPick(vk);
       } else {
         const mods = eventMods(e);
-        if ((mods & PRIMARY_MODS) === 0) return setHint("要带上 Ctrl、Alt 或 Win");
+        if ((mods & PRIMARY_MODS) === 0) return setHint(t("要带上 Ctrl、Alt 或 Win"));
         p.onPick({ mods, vk });
       }
       setHint(null);
@@ -67,11 +68,11 @@ export function KeyCapture(props: Props) {
         }}
       >
         {recording ? (
-          props.kind === "hotkey" ? "按下新的快捷键…" : "按下一个键…"
+          props.kind === "hotkey" ? t("按下新的快捷键…") : t("按下一个键…")
         ) : parts.length > 0 ? (
           parts.map((p) => <kbd key={p}>{p}</kbd>)
         ) : (
-          "点这里录一个键"
+          t("点这里录一个键")
         )}
       </button>
       {hint && <small className="hint warn">{hint}</small>}

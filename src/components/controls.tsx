@@ -1,6 +1,7 @@
 // 设置页共用的小控件：一行设置、开关、滑条、ⓘ 提示。
 // 页面上每项只写名字；要解释的话放进 ⓘ（悬停或用 Tab 移到上面时显示），状态文字（比如「已关」）用 hint。
 import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from "react";
+import { t } from "../i18n";
 
 const TIP_MAX = 280; // 说明框最宽多少
 const TIP_GAP = 8; // 说明框和图标之间
@@ -39,7 +40,7 @@ export function Tip({ text }: { text: string }) {
   }, []);
   return (
     <span className="tip" ref={ref} onPointerEnter={place} onFocus={place}>
-      <button type="button" className="tip-btn" aria-label="说明" aria-describedby={id}>
+      <button type="button" className="tip-btn" aria-label={t("说明")} aria-describedby={id}>
         i
       </button>
       <span role="tooltip" id={id} className="tip-body">

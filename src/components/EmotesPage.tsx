@@ -8,6 +8,8 @@ import { FX_NAMES, MAX_CUSTOM_EMOTES, emoteIcon, emoteName, type CustomEmote } f
 import { Row, Slider, Switch, Tip } from "./controls";
 import { Icon } from "./Icon";
 import { DIRECTIONS, placeOnSlot, slotPos } from "./WheelEditor";
+import { t } from "../i18n";
+import { tj } from "../i18n/react";
 
 interface Props {
   settings: Settings;
@@ -19,30 +21,30 @@ interface Props {
 export function EmotesPage({ settings: s, onChange, onSaved, onShortcuts }: Props & { onShortcuts: () => void }) {
   return (
     <div className="page">
-      <h1>表情</h1>
+      <h1>{t("表情")}</h1>
 
       {s.emoteTrigger === "off" && (
         <p className="banner warn">
-          表情轮盘关着
+          {t("表情轮盘关着")}
           <button className="soft small" onClick={onShortcuts}>
-            去快捷键页打开
+            {t("去快捷键页打开")}
           </button>
         </p>
       )}
 
       <section className="card">
-        <h2>表情轮盘</h2>
+        <h2>{t("表情轮盘")}</h2>
         <EmoteWheelEditor wheel={s.emoteWheel} custom={s.customEmotes} onChange={(emoteWheel) => onChange({ emoteWheel })} />
       </section>
 
       <CustomEmotes settings={s} onChange={onChange} onSaved={onSaved} />
 
       <section className="card">
-        <h2>设置</h2>
-        <Row label="单击也放表情" tip="关着时，表情轮盘的键加单击照常交给下面的程序">
-          <Switch label="单击也放表情" checked={s.emoteClick} onChange={(emoteClick) => onChange({ emoteClick })} />
+        <h2>{t("设置")}</h2>
+        <Row label={t("单击也放表情")} tip={t("关着时，表情轮盘的键加单击照常交给下面的程序")}>
+          <Switch label={t("单击也放表情")} checked={s.emoteClick} onChange={(emoteClick) => onChange({ emoteClick })} />
           {s.emoteClick && (
-            <select aria-label="单击放的表情" value={s.clickEmote} onChange={(e) => onChange({ clickEmote: e.target.value })}>
+            <select aria-label={t("单击放的表情")} value={s.clickEmote} onChange={(e) => onChange({ clickEmote: e.target.value })}>
               {allRefs(s.customEmotes).map((ref) => (
                 <option key={ref} value={ref}>
                   {emoteName(ref, s.customEmotes)}
@@ -51,12 +53,12 @@ export function EmotesPage({ settings: s, onChange, onSaved, onShortcuts }: Prop
             </select>
           )}
         </Row>
-        <Slider label="表情大小" value={s.emoteSizePx} min={80} max={300} step={1} unit=" 像素" onChange={(v) => onChange({ emoteSizePx: v })} />
-        <Row label="表情音效" tip="音量跟信号页的音量走">
-          <Switch label="表情音效" checked={s.emoteSound} onChange={(emoteSound) => onChange({ emoteSound })} />
+        <Slider label={t("表情大小")} value={s.emoteSizePx} min={80} max={300} step={1} unit={t(" 像素")} onChange={(v) => onChange({ emoteSizePx: v })} />
+        <Row label={t("表情音效")} tip={t("音量跟信号页的音量走")}>
+          <Switch label={t("表情音效")} checked={s.emoteSound} onChange={(emoteSound) => onChange({ emoteSound })} />
         </Row>
-        <Row label="显示队友导入的表情" tip="关掉后队友导入的表情显示成问号，你导入的也不发给队友">
-          <Switch label="显示队友导入的表情" checked={s.friendEmotes} onChange={(friendEmotes) => onChange({ friendEmotes })} />
+        <Row label={t("显示队友导入的表情")} tip={t("关掉后队友导入的表情显示成问号，你导入的也不发给队友")}>
+          <Switch label={t("显示队友导入的表情")} checked={s.friendEmotes} onChange={(friendEmotes) => onChange({ friendEmotes })} />
         </Row>
       </section>
     </div>
@@ -70,7 +72,7 @@ function EmoteWheelEditor({ wheel, custom, onChange }: { wheel: string[]; custom
   const [slot, setSlot] = useState(0);
   return (
     <div className="wheel-editor emote">
-      <div className="mini-wheel" role="group" aria-label="表情轮盘的 8 格">
+      <div className="mini-wheel" role="group" aria-label={t("表情轮盘的 8 格")}>
         <div className="mini-ring" />
         <div className="mini-core">EMOTE</div>
         {wheel.map((ref, i) => (
@@ -79,7 +81,7 @@ function EmoteWheelEditor({ wheel, custom, onChange }: { wheel: string[]; custom
             className={`mini-slot${i === slot ? " selected" : ""}`}
             style={slotPos(i)}
             onClick={() => setSlot(i)}
-            aria-label={`${DIRECTIONS[i]}：${emoteName(ref, custom)}`}
+            aria-label={t("{dir}：{name}", { dir: t(DIRECTIONS[i]), name: emoteName(ref, custom) })}
             aria-pressed={i === slot}
           >
             <img src={emoteIcon(ref)} alt="" />
@@ -89,14 +91,14 @@ function EmoteWheelEditor({ wheel, custom, onChange }: { wheel: string[]; custom
       <div className="wheel-side">
         <p className="wheel-pick">
           <span>
-            向{DIRECTIONS[slot]}拖：<b>{emoteName(wheel[slot], custom)}</b>
+            {tj("向{dir}拖：{name}", { dir: t(DIRECTIONS[slot]), name: <b>{emoteName(wheel[slot], custom)}</b> })}
           </span>
           <button className="soft small" onClick={() => void previewEmote(wheel[slot])}>
             <Icon name="play" size={14} />
-            预览
+            {t("预览")}
           </button>
         </p>
-        <p className="muted">换成：</p>
+        <p className="muted">{t("换成：")}</p>
         <div className="palette emote-palette">
           {allRefs(custom).map((ref) => (
             <button
@@ -177,11 +179,11 @@ function CustomEmotes({ settings: s, onChange, onSaved }: Props) {
   return (
     <section className="card">
       <h2>
-        导入的表情
+        {t("导入的表情")}
         <span className="muted">
           {s.customEmotes.length} / {MAX_CUSTOM_EMOTES}
         </span>
-        <Tip text="用自己的图（PNG、JPEG、GIF、WebP）做表情。队友收到的是缩小的静态图；动图和音效只在你这边放" />
+        <Tip text={t("用自己的图（PNG、JPEG、GIF、WebP）做表情。队友收到的是缩小的静态图；动图和音效只在你这边放")} />
       </h2>
       {error && <p className="banner error">{error}</p>}
 
@@ -193,22 +195,22 @@ function CustomEmotes({ settings: s, onChange, onSaved }: Props) {
               <input
                 value={c.name}
                 maxLength={24}
-                aria-label="表情名字"
+                aria-label={t("表情名字")}
                 onChange={(e) => update(c.id, { name: e.target.value })}
               />
-              <select value={c.fx} aria-label="出场效果" onChange={(e) => update(c.id, { fx: Number(e.target.value) })}>
+              <select value={c.fx} aria-label={t("出场效果")} onChange={(e) => update(c.id, { fx: Number(e.target.value) })}>
                 {FX_NAMES.map((n, i) => (
                   <option key={n} value={i}>
-                    {n}
+                    {t(n)}
                   </option>
                 ))}
               </select>
               <span className="hint">
-                {[c.animated && "动图", c.sound && "有音效"].filter(Boolean).join("、")}
+                {[c.animated && t("动图"), c.sound && t("有音效")].filter(Boolean).join(t("、"))}
               </span>
               <button className="soft small" onClick={() => void previewEmote(c.id)}>
                 <Icon name="play" size={14} />
-                预览
+                {t("预览")}
               </button>
               {confirm === c.id ? (
                 <>
@@ -219,15 +221,15 @@ function CustomEmotes({ settings: s, onChange, onSaved }: Props) {
                       removeEmote(c.id).then(onSaved, (e) => setError(String(e)));
                     }}
                   >
-                    删除
+                    {t("删除")}
                   </button>
                   <button className="soft small" onClick={() => setConfirm(null)}>
-                    取消
+                    {t("取消")}
                   </button>
                 </>
               ) : (
                 <button className="soft small danger" onClick={() => setConfirm(c.id)}>
-                  删除
+                  {t("删除")}
                 </button>
               )}
             </li>
@@ -236,32 +238,32 @@ function CustomEmotes({ settings: s, onChange, onSaved }: Props) {
       )}
 
       {full ? (
-        <p className="muted">满了，删掉一个才能再导入</p>
+        <p className="muted">{t("满了，删掉一个才能再导入")}</p>
       ) : (
         <div className="emote-import">
           <label className="soft file-pick">
-            {picked ? "换一张图" : "选一张图"}
+            {picked ? t("换一张图") : t("选一张图")}
             <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={(e) => void pickImage(e.target.files?.[0])} />
           </label>
           {picked && (
             <>
-              {previewUrl && <img className="import-preview" src={previewUrl} alt="缩好的静态图" />}
-              <input value={name} maxLength={24} aria-label="名字" placeholder="名字" onChange={(e) => setName(e.target.value)} />
-              <select value={fx} aria-label="出场效果" onChange={(e) => setFx(Number(e.target.value))}>
+              {previewUrl && <img className="import-preview" src={previewUrl} alt={t("缩好的静态图")} />}
+              <input value={name} maxLength={24} aria-label={t("名字")} placeholder={t("名字")} onChange={(e) => setName(e.target.value)} />
+              <select value={fx} aria-label={t("出场效果")} onChange={(e) => setFx(Number(e.target.value))}>
                 {FX_NAMES.map((n, i) => (
                   <option key={n} value={i}>
-                    {n}
+                    {t(n)}
                   </option>
                 ))}
               </select>
               <label className="soft file-pick">
-                {sound ? `音效：${sound.name}` : "加音效（可选）"}
+                {sound ? t("音效：{name}", { name: sound.name }) : t("加音效（可选）")}
                 <input type="file" accept="audio/ogg,audio/mpeg,audio/wav,.ogg,.mp3,.wav" onChange={(e) => void pickSound(e.target.files?.[0])} />
               </label>
               <button className="primary" disabled={busy} onClick={save}>
-                导入
+                {t("导入")}
               </button>
-              {picked.anim && <span className="hint">动图</span>}
+              {picked.anim && <span className="hint">{t("动图")}</span>}
             </>
           )}
         </div>

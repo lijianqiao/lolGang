@@ -150,7 +150,11 @@ fn run(
                 for h in [m.ok(), k.ok()].into_iter().flatten() {
                     let _ = UnhookWindowsHookEx(h);
                 }
-                Err("装不上键鼠钩子（SetWindowsHookEx 失败）".to_string())
+                Err(crate::tr!(
+                    "装不上键鼠钩子（SetWindowsHookEx 失败）",
+                    "装不上键鼠钩子（SetWindowsHookEx 失败）"
+                )
+                .to_string())
             }
         }
     };

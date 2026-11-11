@@ -34,9 +34,15 @@ impl KeyStore for SystemKeyStore {
     fn master_key(&self) -> AppResult<[u8; 32]> {
         let entry = keyring::Entry::new(self.service, USER).map_err(keystore_err)?;
         match entry.get_secret() {
-            Ok(bytes) => bytes
-                .try_into()
-                .map_err(|_| AppError::KeyStore("凭据管理器里的主密钥长度不对".into())),
+            Ok(bytes) => bytes.try_into().map_err(|_| {
+                AppError::KeyStore(
+                    crate::tr!(
+                        "凭据管理器里的主密钥长度不对",
+                        "凭据管理器里的主密钥长度不对"
+                    )
+                    .into(),
+                )
+            }),
             Err(keyring::Error::NoEntry) => {
                 let key = crypto::random_bytes::<32>()?;
                 entry.set_secret(&key).map_err(keystore_err)?;

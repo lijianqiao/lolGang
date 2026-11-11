@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 // 按键：浏览器的 KeyboardEvent.code → Windows 虚拟键码，以及键名的显示文字。
 // 移植自 lolPing src/shared/keys.ts（MIT，© 2026 Danrui Meng）。合法性由 Rust 的 settings2::normalize 最终把关。
 
@@ -56,7 +57,7 @@ export function vkLabel(vk: number): string {
   if ((vk >= 0x41 && vk <= 0x5a) || (vk >= 0x30 && vk <= 0x39)) return String.fromCharCode(vk);
   if (vk >= 0x60 && vk <= 0x69) return `Num ${vk - 0x60}`;
   if (vk >= 0x70 && vk <= 0x87) return `F${vk - 0x6f}`;
-  return VK_LABELS[vk] ?? `键 0x${vk.toString(16).toUpperCase().padStart(2, "0")}`;
+  return VK_LABELS[vk] ?? t("键 0x{hex}", { hex: vk.toString(16).toUpperCase().padStart(2, "0") });
 }
 
 export function hotkeyParts(h: Hotkey): string[] {

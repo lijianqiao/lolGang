@@ -384,10 +384,10 @@ impl Runner {
         let mic = match mic {
             Ok(m) => m,
             Err(e) => {
-                let error = format!("麦克风打不开：{e}");
+                let error = crate::tr!(format!("麦克风打不开：{e}"), format!("麦克风打不开：{e}"));
                 if let Some(s) = self.state() {
                     s.overlays.send(Msg::Toast {
-                        title: "麦克风打不开".into(),
+                        title: crate::tr!("麦克风打不开", "麦克风打不开").into(),
                         body: e.clone(),
                     });
                 }
@@ -543,7 +543,8 @@ impl Runner {
                 }
                 Err(e) => {
                     self.streams.clear();
-                    let error = format!("扬声器打不开：{e}");
+                    let error =
+                        crate::tr!(format!("扬声器打不开：{e}"), format!("扬声器打不开：{e}"));
                     self.set_status(|s| {
                         s.error = Some(error);
                         s.test = None;

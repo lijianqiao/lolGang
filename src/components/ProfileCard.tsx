@@ -6,6 +6,7 @@ import { PRESET_COLORS, PRESET_ICONS } from "../avatars";
 import { compressForAvatar } from "../image";
 import { Avatar } from "./Avatar";
 import { Tip } from "./controls";
+import { t } from "../i18n";
 
 const NICKNAME_MAX = 32;
 
@@ -72,13 +73,13 @@ export function ProfileCard({ me, onSaved }: { me: Me; onSaved: (v: TeamView) =>
       <section className="card profile">
         <Avatar fingerprint={me.fingerprint} name={me.nickname} avatar={me.avatar} size={48} />
         <div className="member-text">
-          <span className="member-name">{me.nickname || "还没起名字"}</span>
+          <span className="member-name">{me.nickname || t("还没起名字")}</span>
           <small className="hint">
-            指纹 {me.fingerprint} <Tip text="队友用指纹认出你；昵称和头像会出现在你的信号下面" />
+            {t("指纹 {fp}", { fp: me.fingerprint })} <Tip text={t("队友用指纹认出你；昵称和头像会出现在你的信号下面")} />
           </small>
         </div>
         <button className="soft small" onClick={open}>
-          修改
+          {t("修改")}
         </button>
       </section>
     );
@@ -86,12 +87,12 @@ export function ProfileCard({ me, onSaved }: { me: Me; onSaved: (v: TeamView) =>
 
   return (
     <section className="card profile-edit">
-      <h2>我的资料</h2>
+      <h2>{t("我的资料")}</h2>
       <div className="profile-top">
         <Avatar fingerprint={me.fingerprint} name={name} avatar={shown(me, draft)} size={64} />
         <label className="field">
-          <span>昵称</span>
-          <input value={name} maxLength={NICKNAME_MAX} onChange={(e) => setName(e.target.value)} placeholder="队友看到的名字" />
+          <span>{t("昵称")}</span>
+          <input value={name} maxLength={NICKNAME_MAX} onChange={(e) => setName(e.target.value)} placeholder={t("队友看到的名字")} />
         </label>
       </div>
       <div className="preset-grid">
@@ -101,31 +102,31 @@ export function ProfileCard({ me, onSaved }: { me: Me; onSaved: (v: TeamView) =>
             className={`preset${preset?.icon === i ? " current" : ""}`}
             style={{ background: PRESET_COLORS[preset?.color ?? 0] }}
             onClick={() => setDraft({ kind: "preset", icon: i, color: preset?.color ?? 0 })}
-            aria-label={`头像 ${icon}`}
+            aria-label={t("头像 {icon}", { icon })}
           >
             {icon}
           </button>
         ))}
       </div>
       {preset && (
-        <div className="color-row" role="radiogroup" aria-label="底色">
+        <div className="color-row" role="radiogroup" aria-label={t("底色")}>
           {PRESET_COLORS.map((c, i) => (
             <button
               key={c}
               className={`swatch${preset.color === i ? " current" : ""}`}
               style={{ background: c }}
               onClick={() => setDraft({ kind: "preset", icon: preset.icon, color: i })}
-              aria-label={`底色 ${i + 1}`}
+              aria-label={t("底色 {n}", { n: i + 1 })}
             />
           ))}
         </div>
       )}
       <div className="actions">
         <button className="soft small" onClick={() => file.current?.click()}>
-          上传图片
+          {t("上传图片")}
         </button>
         <button className="soft small" onClick={() => setDraft({ kind: "auto" })}>
-          用自动头像
+          {t("用自动头像")}
         </button>
         <input
           ref={file}
@@ -142,10 +143,10 @@ export function ProfileCard({ me, onSaved }: { me: Me; onSaved: (v: TeamView) =>
       {error && <p className="banner error">{error}</p>}
       <div className="actions end">
         <button className="soft" onClick={() => setEditing(false)}>
-          取消
+          {t("取消")}
         </button>
         <button className="primary" disabled={busy} onClick={save}>
-          保存
+          {t("保存")}
         </button>
       </div>
     </section>

@@ -2,6 +2,7 @@
 // 投票卡片的样子参考 lolPing src/renderer/panel/vote.ts（MIT，© 2026 Danrui Meng）。
 import { invoke } from "@tauri-apps/api/core";
 import { el } from "../shared/dom";
+import { t } from "../i18n";
 
 /** 和 Rust 的 panel::VoteDto 对应。 */
 export interface VoteDto {
@@ -38,13 +39,13 @@ export function voteCard(v: VoteDto): { card: HTMLElement; bar: HTMLElement } {
   if (v.result) {
     foot.append(el("span", "vote-said", v.result));
   } else if (v.canAnswer) {
-    const yes = el("button", "vote-btn yes", v.kind === "ready" ? "接受" : "同意");
-    const no = el("button", "vote-btn no", v.kind === "ready" ? "拒绝" : "反对");
+    const yes = el("button", "vote-btn yes", v.kind === "ready" ? t("接受") : t("同意"));
+    const no = el("button", "vote-btn no", v.kind === "ready" ? t("拒绝") : t("反对"));
     yes.addEventListener("click", () => answer(true));
     no.addEventListener("click", () => answer(false));
     foot.append(yes, no);
   } else {
-    foot.append(el("span", "vote-said", v.mine === null ? "等大家回答" : v.mine ? "你同意了" : "你反对了"));
+    foot.append(el("span", "vote-said", v.mine === null ? t("等大家回答") : v.mine ? t("你同意了") : t("你反对了")));
   }
   card.append(marks, track, foot);
   bar.style.transform = `scaleX(${voteLeft(v, Date.now())})`;

@@ -126,7 +126,8 @@ impl Runner {
 pub async fn text_send(app: AppHandle, text: String) -> Result<&'static str, String> {
     let (reply, rx) = oneshot::channel();
     panel(&app)?.send(PanelMsg::TextSubmit(text, reply));
-    rx.await.map_err(|_| "输入框没有响应".to_string())
+    rx.await
+        .map_err(|_| crate::tr!("输入框没有响应", "输入框没有响应").to_string())
 }
 
 #[tauri::command]

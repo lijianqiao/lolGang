@@ -21,15 +21,32 @@ const PREFIX: &str = "GT2";
 const PAYLOAD_LEN: usize = 26;
 const NBITS: usize = PAYLOAD_LEN * 8 + 10;
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RoomCodeError {
-    #[error("队伍码应以 GT3 或 GT2 开头")]
     BadPrefix,
-    #[error("队伍码长度或字符不对")]
     BadEncoding,
-    #[error("队伍码校验位不对，请检查是否抄错")]
     BadCheck,
 }
+
+// 进队时显示给用户，按界面语言出（3.3.2）
+impl std::fmt::Display for RoomCodeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            RoomCodeError::BadPrefix => {
+                crate::tr!("队伍码应以 GT3 或 GT2 开头", "队伍码应以 GT3 或 GT2 开头")
+            }
+            RoomCodeError::BadEncoding => {
+                crate::tr!("队伍码长度或字符不对", "队伍码长度或字符不对")
+            }
+            RoomCodeError::BadCheck => crate::tr!(
+                "队伍码校验位不对，请检查是否抄错",
+                "队伍码校验位不对，请检查是否抄错"
+            ),
+        })
+    }
+}
+
+impl std::error::Error for RoomCodeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RoomCode {

@@ -15,19 +15,19 @@ import { ShortcutsPage } from "./components/ShortcutsPage";
 import { TeamPage } from "./components/TeamPage";
 import { VoicePage } from "./components/VoicePage";
 import logo from "./assets/logo.svg";
-import { setLang } from "./i18n";
 import { useLang } from "./i18n/react";
 import "./app.css";
+import { k, setLang, t, type Key } from "./i18n";
 
 type Page = "team" | "pings" | "emotes" | "voice" | "shortcuts" | "features" | "about";
-const PAGES: { id: Page; label: string; icon: IconName }[] = [
-  { id: "team", label: "队伍", icon: "users" },
-  { id: "pings", label: "信号", icon: "target" },
-  { id: "emotes", label: "表情", icon: "smile" },
-  { id: "voice", label: "语音", icon: "mic" },
-  { id: "shortcuts", label: "快捷键", icon: "keyboard" },
-  { id: "features", label: "功能", icon: "toggle" },
-  { id: "about", label: "关于", icon: "info" },
+const PAGES: { id: Page; label: Key; icon: IconName }[] = [
+  { id: "team", label: k("队伍"), icon: "users" },
+  { id: "pings", label: k("信号"), icon: "target" },
+  { id: "emotes", label: k("表情"), icon: "smile" },
+  { id: "voice", label: k("语音"), icon: "mic" },
+  { id: "shortcuts", label: k("快捷键"), icon: "keyboard" },
+  { id: "features", label: k("功能"), icon: "toggle" },
+  { id: "about", label: k("关于"), icon: "info" },
 ];
 
 const SAVE_DELAY_MS = 300;
@@ -95,7 +95,7 @@ export default function App() {
           setClashes(saved.clashes);
           setError(null);
         },
-        (e) => setError(`设置没存上：${String(e)}`),
+        (e) => setError(t("设置没存上：{e}", { e: String(e) })),
       );
     }, SAVE_DELAY_MS);
   }, []);
@@ -128,13 +128,13 @@ export default function App() {
             aria-current={page === p.id ? "page" : undefined}
           >
             <Icon name={p.icon} />
-            {p.label}
+            {t(p.label)}
           </button>
         ))}
         {status && (
           <p className={`side-status${status.enabled && !status.inputError ? " on" : ""}`}>
             <span className="dot" />
-            {status.inputError ? "信号不可用" : status.enabled ? "信号开启中" : "信号已暂停"}
+            {status.inputError ? t("信号不可用") : status.enabled ? t("信号开启中") : t("信号已暂停")}
           </p>
         )}
       </nav>
@@ -156,7 +156,7 @@ export default function App() {
             {page === "about" && <AboutPage settings={settings} onChange={change} />}
           </>
         ) : (
-          !error && <p className="loading">正在读取设置…</p>
+          !error && <p className="loading">{t("正在读取设置…")}</p>
         )}
       </main>
     </div>

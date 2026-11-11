@@ -23,7 +23,7 @@ pub(super) fn unbase64(s: &str) -> Result<Vec<u8>, String> {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD
         .decode(s)
-        .map_err(|_| "图片数据格式不对".to_string())
+        .map_err(|_| crate::tr!("图片数据格式不对", "图片数据格式不对").to_string())
 }
 
 /// 给界面的头像：内置的给下标，图片给能直接放进 <img> 的 data URL。
@@ -190,7 +190,7 @@ pub async fn view(app: &AppHandle) -> Result<TeamView, String> {
     let (me, team, members) = node
         .call(snapshot)
         .await
-        .ok_or("网络模块停了")?
+        .ok_or(crate::tr!("网络模块停了", "网络模块停了"))?
         .map_err(|e| e.to_string())?;
     let room = team.as_ref().map(|(t, _)| t.room_id);
     let (paths, lan, relays) = node
@@ -202,7 +202,7 @@ pub async fn view(app: &AppHandle) -> Result<TeamView, String> {
             )
         })
         .await
-        .ok_or("网络模块停了")?;
+        .ok_or(crate::tr!("网络模块停了", "网络模块停了"))?;
     let presence = state.team.presence.lock().expect("在线状态锁没有中毒");
     let skew = state.team.skew.lock().expect("队伍锁没有中毒");
     let members = members

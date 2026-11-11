@@ -100,7 +100,12 @@ fn set_autostart(app: &AppHandle, on: bool) -> Result<(), String> {
     } else {
         launcher.disable()
     };
-    done.map_err(|e| format!("开机启动没设置上：{e}"))
+    done.map_err(|e| {
+        crate::tr!(
+            format!("开机启动没设置上：{e}"),
+            format!("开机启动没设置上：{e}")
+        )
+    })
 }
 
 /// 设置里开着开机启动、系统里却没登记时补上（2.0.1 改了产品名，系统里登记的名字跟着变）。只在正式版里做：
@@ -246,13 +251,18 @@ pub fn status_get(state: State<'_, AppState>) -> Status {
 #[tauri::command]
 pub fn open_accessibility_settings() -> Result<(), String> {
     if !cfg!(target_os = "macos") {
-        return Err("只有 macOS 要授权".into());
+        return Err(crate::tr!("只有 macOS 要授权", "只有 macOS 要授权").into());
     }
     std::process::Command::new("open")
         .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
         .spawn()
         .map(|_| ())
-        .map_err(|e| format!("打不开系统设置：{e}"))
+        .map_err(|e| {
+            crate::tr!(
+                format!("打不开系统设置：{e}"),
+                format!("打不开系统设置：{e}")
+            )
+        })
 }
 
 /// 「关于」页「给项目点个 Star」的两个地址（3.3.2）。控制面板只能说要哪一个，地址只在这里。
@@ -269,8 +279,12 @@ fn project_page(site: &str) -> Option<&'static str> {
 /// 能做的只有这个命令——打开上面写死的两个地址之一，传别的什么都不打开。
 #[tauri::command]
 pub fn open_project_page(site: String) -> Result<(), String> {
-    let url = project_page(&site).ok_or("只能打开 GitHub 或 Gitee 上的项目页")?;
-    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| format!("打不开浏览器：{e}"))
+    let url = project_page(&site).ok_or(crate::tr!(
+        "只能打开 GitHub 或 Gitee 上的项目页",
+        "只能打开 GitHub 或 Gitee 上的项目页"
+    ))?;
+    tauri_plugin_opener::open_url(url, None::<&str>)
+        .map_err(|e| crate::tr!(format!("打不开浏览器：{e}"), format!("打不开浏览器：{e}")))
 }
 
 /// 授权后重开程序：键鼠监听只在启动时建。
@@ -331,7 +345,7 @@ pub fn emote_import(
         use base64::Engine;
         base64::engine::general_purpose::STANDARD
             .decode(s)
-            .map_err(|_| "文件数据格式不对".to_string())
+            .map_err(|_| crate::tr!("文件数据格式不对", "文件数据格式不对").to_string())
     };
     let still = decode(&still)?;
     let anim = anim.as_deref().map(decode).transpose()?;

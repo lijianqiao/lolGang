@@ -19,7 +19,7 @@ where
     let node = app.state::<AppState>().node.clone();
     node.call(f)
         .await
-        .ok_or("网络模块停了")?
+        .ok_or(crate::tr!("网络模块停了", "网络模块停了"))?
         .map_err(|e| e.to_string())?;
     refresh_names(app);
     refresh_presence(app);

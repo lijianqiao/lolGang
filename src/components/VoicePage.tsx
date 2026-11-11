@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { onVoice, voiceTest, voiceView, type Mic, type Settings, type VoiceStatus } from "../api";
 import { vkLabel } from "../shared/keys";
 import { Row, Slider, Switch } from "./controls";
+import { k, t, type Key } from "../i18n";
+import { tj } from "../i18n/react";
 
 interface Props {
   settings: Settings;
@@ -11,7 +13,7 @@ interface Props {
   onShortcuts: () => void;
 }
 
-const TEST_TEXT: Record<NonNullable<VoiceStatus["test"]>, string> = { recording: "正在录 3 秒…", playing: "正在回放…" };
+const TEST_TEXT: Record<NonNullable<VoiceStatus["test"]>, Key> = { recording: k("正在录 3 秒…"), playing: k("正在回放…") };
 
 export function VoicePage({ settings: s, onChange, onShortcuts }: Props) {
   const [mics, setMics] = useState<Mic[]>([]);
@@ -31,30 +33,30 @@ export function VoicePage({ settings: s, onChange, onShortcuts }: Props) {
 
   return (
     <div className="page">
-      <h1>语音</h1>
+      <h1>{t("语音")}</h1>
       {status.error && <p className="banner error">{status.error}</p>}
 
       <section className={`hero${s.voice ? " on" : ""}`}>
         <div>
-          <b>{s.voice ? "语音开着" : "语音关着"}</b>
+          <b>{s.voice ? t("语音开着") : t("语音关着")}</b>
           <p>
-            按住 <kbd>{vkLabel(s.talkKey)}</kbd> 说话
+            {tj("按住 {key} 说话", { key: <kbd>{vkLabel(s.talkKey)}</kbd> })}
           </p>
         </div>
-        <Switch label="语音开关" checked={s.voice} onChange={(voice) => onChange({ voice })} />
+        <Switch label={t("语音开关")} checked={s.voice} onChange={(voice) => onChange({ voice })} />
       </section>
 
       <section className="card">
-        <h2>设置</h2>
-        <Row label="说话键" tip="按住说话，松开发给队友。点一下照常打出这个字">
+        <h2>{t("设置")}</h2>
+        <Row label={t("说话键")} tip={t("按住说话，松开发给队友。点一下照常打出这个字")}>
           <kbd>{vkLabel(s.talkKey)}</kbd>
           <button className="soft small" onClick={onShortcuts}>
-            去快捷键页改
+            {t("去快捷键页改")}
           </button>
         </Row>
-        <Row label="麦克风">
-          <select aria-label="麦克风" value={mic} onChange={(e) => onChange({ mic: e.target.value })}>
-            <option value="">跟随系统</option>
+        <Row label={t("麦克风")}>
+          <select aria-label={t("麦克风")} value={mic} onChange={(e) => onChange({ mic: e.target.value })}>
+            <option value="">{t("跟随系统")}</option>
             {mics.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -62,10 +64,10 @@ export function VoicePage({ settings: s, onChange, onShortcuts }: Props) {
             ))}
           </select>
         </Row>
-        <Slider label="队友语音的音量" value={s.voiceVolume} min={0} max={100} step={1} unit="" onChange={(v) => onChange({ voiceVolume: v })} />
-        <Row label="试音" tip="录 3 秒，在本机编码再解码放给你听，不发给任何人" hint={status.test && TEST_TEXT[status.test]}>
+        <Slider label={t("队友语音的音量")} value={s.voiceVolume} min={0} max={100} step={1} unit="" onChange={(v) => onChange({ voiceVolume: v })} />
+        <Row label={t("试音")} tip={t("录 3 秒，在本机编码再解码放给你听，不发给任何人")} hint={status.test && t(TEST_TEXT[status.test])}>
           <button className="soft" disabled={status.test !== null} onClick={() => void voiceTest()}>
-            录 3 秒听听
+            {t("录 3 秒听听")}
           </button>
         </Row>
       </section>

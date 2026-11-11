@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 // 导入表情前在控制面板里把文件准备好：图片取第一帧缩成 160 像素以内、12 KB 以内的静态 WebP（不行就 128 像素再试），
 // 动的 GIF、WebP 原样留作动画；音效检查类型、大小、长度。Rust 写盘前还会按文件头再查一遍。
 // 移植自 lolPing src/renderer/settings/emoteImport.ts（MIT，© 2026 Danrui Meng）。
@@ -142,13 +143,13 @@ async function encodeStill(frame: VideoFrame): Promise<Uint8Array | null> {
 
 /** 选来的图片 → 静态图（和动画）。 */
 export async function prepareEmote(file: File): Promise<Result<PreparedEmote>> {
-  if (file.size > INPUT_MAX_BYTES) return fail("图片太大了，最多 8 MB");
+  if (file.size > INPUT_MAX_BYTES) return fail(t("图片太大了，最多 8 MB"));
   const bytes = new Uint8Array(await file.arrayBuffer());
   const type = sniffImage(bytes);
-  if (!type) return fail("只能导入 PNG、JPEG、GIF 或 WebP 图片");
+  if (!type) return fail(t("只能导入 PNG、JPEG、GIF 或 WebP 图片"));
   const declared = imageSize(bytes);
-  if (!declared) return fail("这张图打不开");
-  if (Math.max(declared.width, declared.height) > INPUT_MAX_SIDE) return fail("图片太大了，边长最多 8192 像素");
+  if (!declared) return fail(t("这张图打不开"));
+  if (Math.max(declared.width, declared.height) > INPUT_MAX_SIDE) return fail(t("图片太大了，边长最多 8192 像素"));
   let decoder: ImageDecoder | null = null;
   let frame: VideoFrame | null = null;
   try {
@@ -158,13 +159,13 @@ export async function prepareEmote(file: File): Promise<Result<PreparedEmote>> {
     frame = (await decoder.decode({ frameIndex: 0 })).image;
     const animated = (type === "gif" || type === "webp") && frames > 1;
     if (animated && (bytes.length > ANIM_MAX_BYTES || Math.max(frame.displayWidth, frame.displayHeight) > ANIM_MAX_SIDE)) {
-      return fail("动图太大了：最多 5 MB、边长 1024 像素");
+      return fail(t("动图太大了：最多 5 MB、边长 1024 像素"));
     }
     const still = await encodeStill(frame);
-    if (!still) return fail("这张图细节太多，缩不到 12 KB，换一张简单点的");
+    if (!still) return fail(t("这张图细节太多，缩不到 12 KB，换一张简单点的"));
     return { ok: true, value: { name: nameFromFile(file.name), still, anim: animated ? bytes : null } };
   } catch {
-    return fail("这张图打不开");
+    return fail(t("这张图打不开"));
   } finally {
     frame?.close();
     decoder?.close();
@@ -181,15 +182,15 @@ export function sniffAudio(b: Uint8Array): boolean {
 /** 选来的音效：OGG、MP3 或 WAV，1 MB、5 秒以内。 */
 export async function prepareSound(file: File): Promise<Result<Uint8Array>> {
   const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
-  if (!sniffAudio(head)) return fail("音效只能是 OGG、MP3 或 WAV");
-  if (file.size > SOUND_MAX_BYTES) return fail("音效太大了，最多 1 MB");
+  if (!sniffAudio(head)) return fail(t("音效只能是 OGG、MP3 或 WAV"));
+  if (file.size > SOUND_MAX_BYTES) return fail(t("音效太大了，最多 1 MB"));
   const bytes = new Uint8Array(await file.arrayBuffer());
   try {
     const decoded = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(bytes.slice().buffer); // 解码会拿走缓冲区，给它一份拷贝
-    if (decoded.duration > SOUND_MAX_S + 0.05) return fail("音效太长了，最多 5 秒");
+    if (decoded.duration > SOUND_MAX_S + 0.05) return fail(t("音效太长了，最多 5 秒"));
     return { ok: true, value: bytes };
   } catch {
-    return fail("这个音效打不开");
+    return fail(t("这个音效打不开"));
   }
 }
 
