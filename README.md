@@ -38,7 +38,7 @@
 
 ## 下载
 
-到 [Releases](https://github.com/lijianqiao/lolPing-rust/releases/latest) 下载：
+到 [Releases](https://github.com/lijianqiao/lolPing-rust/releases/latest) 下载。国内连不上 GitHub 的，到 [Gitee 发行版](https://gitee.com/lijianqiao/lolPing-rust/releases) 下载同样的文件（3.3.0 起）：
 
 | 系统 | 文件 | 状态 |
 |---|---|---|
@@ -51,7 +51,7 @@
 - Windows 可能弹出「Windows 已保护你的电脑」：安装包没有买代码签名证书，点「更多信息」→「仍要运行」即可。
 - macOS 版没有经过苹果公证，提示「无法验证开发者」时，到「系统设置 → 隐私与安全性」里点「仍要打开」。
 
-装好后会自己检查新版本，在「关于」页点「更新并重启」即可升级。
+装好后会自己检查新版本，在「关于」页点「更新并重启」即可升级。自动检查先查 GitHub，连不上再查 Gitee；「关于」页的「检查更新」查 GitHub，「国内检查更新」查 Gitee（3.3.1 起）。
 
 **同时装了原版 lolPing 的话**：两个程序名字一样，开始菜单和桌面上的快捷方式都叫 lolPing、是同一个文件，后装的会覆盖先装的。
 程序本身、数据、开机启动互不影响，可以同时运行。分不清时看「已安装的应用」里的发布者：这个项目的是 lijianqiao。

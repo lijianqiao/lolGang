@@ -16,7 +16,9 @@
 //!    （`requireSignedVersion`，防止拿旧版本的真包冒充新版本）。哪边下载的都一样校验，Gitee 上的文件被换掉也装不进来。装好后重启。
 //! 5. 状态放在 `Updates` 里（一把锁），每次变化推 "update://changed" 给控制面板。
 //! 6. 测试实例（`LOLGANG_INSTANCE=2/3`）不查更新、不装（3.2.0）：测试版的版本号可能比装好的旧，查到「新版本」一装，
-//!    安装包会覆盖正式安装（2026-11-10 实际发生过）。
+//!    安装包会覆盖正式安装（2026-11-10 实际发生过）。3.3.1 起为了对着真实的 GitHub、Gitee 实测：测试实例设了
+//!    `LOLGANG_TEST_UPDATE=1` 就查、下载、校验签名，但下载完就停、**永远不装**；再设 `LOLGANG_TEST_UPDATE_NO_GITHUB=1`，
+//!    GitHub 换成本机连不上的地址，用来在开着代理的电脑上测「GitHub 查不到 → Gitee」。正式身份不认这两个变量。
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -40,6 +42,8 @@ const GITEE_LATEST_API: &str =
 /// 清单里 GitHub 的下载地址前缀，换成 Gitee 的（文件名不变）。
 const GITHUB_DOWNLOADS: &str = "https://github.com/lijianqiao/lolPing-rust/releases/download/";
 const GITEE_DOWNLOADS: &str = "https://gitee.com/lijianqiao/lolPing-rust/releases/download/";
+/// 测试实例模拟「连不上 GitHub」用的地址：本机的 9 号端口没人听，连接直接被拒。
+const NO_GITHUB: &str = "https://127.0.0.1:9/latest.json";
 /// 查每一边最多等多久。
 const CHECK_TIMEOUT: Duration = Duration::from_secs(15);
 /// 下载最多多久：43 MB 在每秒 73 KB 以上的网速下载得完，比这还慢就该换一边了。
@@ -154,8 +158,14 @@ struct Sources {
 
 impl Sources {
     fn shipped() -> Self {
+        // 测试实例加 LOLGANG_TEST_UPDATE_NO_GITHUB=1 时，GitHub 换成本机一个连不上的地址（文件头第 6 条）
+        let github = if test_update().is_some_and(|t| t.no_github) {
+            NO_GITHUB
+        } else {
+            GITHUB_MANIFEST
+        };
         Sources {
-            github: Url::parse(GITHUB_MANIFEST).expect("常量地址合法"),
+            github: Url::parse(github).expect("常量地址合法"),
             gitee_api: Url::parse(GITEE_LATEST_API).expect("常量地址合法"),
             timeout: CHECK_TIMEOUT,
             test_target: None,
@@ -169,9 +179,38 @@ fn plain(e: &str) -> String {
         "没有拿到可用的更新清单".into()
     } else if e.contains("timed out") || e.contains("operation timed out") {
         "等了 15 秒没有回应".into()
+    } else if e.contains("error sending request") {
+        "连接失败".into()
     } else {
         e.to_string()
     }
+}
+
+/// 测试实例实测更新（文件头第 6 条）：`LOLGANG_TEST_UPDATE=1` 时测试实例也查更新、下载、校验签名，但永远不装；
+/// 再加 `LOLGANG_TEST_UPDATE_NO_GITHUB=1` 时 GitHub 换成连不上的地址。正式身份不认这两个变量。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TestUpdate {
+    no_github: bool,
+}
+
+fn test_update() -> Option<TestUpdate> {
+    test_update_from(
+        crate::dev_instance(),
+        std::env::var("LOLGANG_TEST_UPDATE").ok().as_deref(),
+        std::env::var("LOLGANG_TEST_UPDATE_NO_GITHUB")
+            .ok()
+            .as_deref(),
+    )
+}
+
+fn test_update_from(
+    instance: Option<u16>,
+    update: Option<&str>,
+    no_github: Option<&str>,
+) -> Option<TestUpdate> {
+    (instance.is_some() && update == Some("1")).then_some(TestUpdate {
+        no_github: no_github == Some("1"),
+    })
 }
 
 /// 用一份清单查一次。
@@ -320,7 +359,7 @@ pub async fn check(app: &AppHandle, quiet: bool, mode: Mode) -> UpdateView {
     if busy {
         return view(app);
     }
-    if crate::dev_instance().is_some() {
+    if crate::dev_instance().is_some() && test_update().is_none() {
         set(app, |i| {
             i.phase = Some(Phase::Idle);
             i.error = Some("测试实例不检查更新".into());
@@ -374,7 +413,7 @@ pub async fn check(app: &AppHandle, quiet: bool, mode: Mode) -> UpdateView {
 
 /// 启动后 30 秒查一次，之后每 6 小时查一次（设置关了就跳过这一次）。先 GitHub，查不到才 Gitee。
 pub fn start_schedule(app: &AppHandle) {
-    if crate::dev_instance().is_some() {
+    if crate::dev_instance().is_some() && test_update().is_none() {
         return;
     }
     let app = app.clone();
@@ -440,6 +479,12 @@ pub async fn update_install(app: AppHandle) -> Result<(), String> {
     })
     .await;
     let result = match downloaded {
+        // 测试实例（LOLGANG_TEST_UPDATE=1）：下载完、签名对了就停，永远不装（文件头第 6 条）
+        Ok(bytes) if crate::dev_instance().is_some() => Err(format!(
+            "测试实例不安装：已下载 {} 字节，签名校验通过（来自 {}）",
+            bytes.len(),
+            if source == Some(Source::Gitee) { "Gitee" } else { "GitHub" }
+        )),
         Ok(bytes) => {
             set(&app, |i| i.phase = Some(Phase::Installing));
             update
@@ -935,6 +980,42 @@ mod source_tests {
             "https://gitee.com/lijianqiao/lolPing-rust/releases/download/v9.9.9/lolping_9.9.9_x64-setup.exe"
         );
         assert_eq!(url_via(Mode::Github), GH_PKG);
+    }
+
+    /// 插件和 reqwest 的英文报错说成人话（实测时「关于」页显示的是一长串英文和本机地址）。
+    #[test]
+    fn common_failures_read_as_plain_chinese() {
+        assert_eq!(
+            plain("error sending request for url (https://127.0.0.1:9/latest.json)"),
+            "连接失败"
+        );
+        assert_eq!(
+            plain("Could not fetch a valid release JSON from the remote"),
+            "没有拿到可用的更新清单"
+        );
+        assert_eq!(plain("operation timed out"), "等了 15 秒没有回应");
+        assert_eq!(plain("别的原因"), "别的原因");
+    }
+
+    #[test]
+    fn test_update_switches_are_only_for_test_instances() {
+        assert_eq!(
+            test_update_from(None, Some("1"), Some("1")),
+            None,
+            "正式身份不认"
+        );
+        assert_eq!(test_update_from(Some(2), None, Some("1")), None);
+        assert_eq!(test_update_from(Some(2), Some("0"), None), None);
+        assert_eq!(
+            test_update_from(Some(3), Some("1"), None),
+            Some(TestUpdate { no_github: false })
+        );
+        assert_eq!(
+            test_update_from(Some(2), Some("1"), Some("1")),
+            Some(TestUpdate { no_github: true })
+        );
+        // 正式身份下 GitHub 用真地址
+        assert_eq!(Sources::shipped().github.as_str(), GITHUB_MANIFEST);
     }
 
     #[test]
