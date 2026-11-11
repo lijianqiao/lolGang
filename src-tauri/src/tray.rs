@@ -149,7 +149,7 @@ pub fn setup(app: &tauri::App, enabled: bool) -> tauri::Result<()> {
                 crate::update::tray_show_about(app);
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    crate::update::check(&app, false).await;
+                    crate::update::check(&app, false, crate::update::Mode::GithubThenGitee).await;
                 });
             }
             "quit" => app.exit(0),

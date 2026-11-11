@@ -2660,6 +2660,7 @@ dependencies = [
  "keyring",
  "minisign",
  "opus-rs",
+ "reqwest",
  "rusqlite",
  "rustls",
  "rustls-platform-verifier",

@@ -162,6 +162,7 @@ pub fn run() {
             panel::text::text_cancel,
             update::update_view,
             update::update_check,
+            update::update_check_cn,
             update::update_install,
             team::commands::team_view,
             team::commands::team_create,

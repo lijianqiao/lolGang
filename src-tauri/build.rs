@@ -27,6 +27,7 @@ const COMMANDS: &[&str] = &[
     "text_cancel",
     "update_view",
     "update_check",
+    "update_check_cn",
     "update_install",
     "team_view",
     "team_create",
