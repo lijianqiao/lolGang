@@ -30,39 +30,48 @@ impl fmt::Display for AppError {
             AppError::InvalidRoomCode(e) => write!(
                 f,
                 "{}",
-                crate::tr!(format!("队伍码不对：{e}"), format!("队伍码不对：{e}"))
+                crate::tr!(
+                    format!("队伍码不对：{e}"),
+                    format!("Invalid team code: {e}")
+                )
             ),
-            AppError::RoomNotFound => f.write_str(crate::tr!("队伍不存在", "队伍不存在")),
-            AppError::NotOwner => f.write_str(crate::tr!("只有队长能这样做", "只有队长能这样做")),
-            AppError::RoomNotActive => {
-                f.write_str(crate::tr!("队伍现在不能这样操作", "队伍现在不能这样操作"))
+            AppError::RoomNotFound => {
+                f.write_str(crate::tr!("队伍不存在", "The team doesn't exist"))
             }
+            AppError::NotOwner => f.write_str(crate::tr!(
+                "只有队长能这样做",
+                "Only the team leader can do this"
+            )),
+            AppError::RoomNotActive => f.write_str(crate::tr!(
+                "队伍现在不能这样操作",
+                "The team can't do that right now"
+            )),
             AppError::RoomNotJoining => f.write_str(crate::tr!(
                 "只有正在加入的队伍可以取消",
-                "只有正在加入的队伍可以取消"
+                "Only a team you're still joining can be cancelled"
             )),
             AppError::AlreadyInTeam => f.write_str(crate::tr!(
                 "已经在一个队伍里了，先退出再建队或进队",
-                "已经在一个队伍里了，先退出再建队或进队"
+                "You're already in a team. Leave it before creating or joining another"
             )),
             AppError::InvalidTitle => f.write_str(crate::tr!(
                 "队名为空或太长，最多 64 个字符",
-                "队名为空或太长，最多 64 个字符"
+                "Team name is empty or too long (64 characters at most)"
             )),
             AppError::NicknameTooLong => f.write_str(crate::tr!(
                 "昵称太长，最多 32 个字符",
-                "昵称太长，最多 32 个字符"
+                "Nickname too long (32 characters at most)"
             )),
             AppError::InvalidAvatar => f.write_str(crate::tr!(
                 "头像图片太大或格式不对，请换一张",
-                "头像图片太大或格式不对，请换一张"
+                "The avatar image is too large or in the wrong format. Please choose another"
             )),
             AppError::InvalidRelay(url) => write!(
                 f,
                 "{}",
                 crate::tr!(
                     format!("中继地址必须是 wss:// 开头的完整地址：{url}"),
-                    format!("中继地址必须是 wss:// 开头的完整地址：{url}")
+                    format!("A relay address must be a full address starting with wss://: {url}")
                 )
             ),
             AppError::KeyStore(why) => write!(
@@ -70,17 +79,17 @@ impl fmt::Display for AppError {
                 "{}",
                 crate::tr!(
                     format!("本机密钥不可用：{why}"),
-                    format!("本机密钥不可用：{why}")
+                    format!("The local key is unavailable: {why}")
                 )
             ),
             AppError::Decrypt => f.write_str(crate::tr!(
                 "本机数据解密失败，可能是本机主密钥被更换",
-                "本机数据解密失败，可能是本机主密钥被更换"
+                "Couldn't decrypt local data; the local master key may have been replaced"
             )),
             AppError::Storage(e) => write!(
                 f,
                 "{}",
-                crate::tr!(format!("数据库错误：{e}"), format!("数据库错误：{e}"))
+                crate::tr!(format!("数据库错误：{e}"), format!("Database error: {e}"))
             ),
             AppError::Crypto(e) => e.fmt(f),
         }

@@ -113,6 +113,9 @@ export default function App() {
     void setEnabled(on);
   };
 
+  // 拿到界面语言（status_get）之前什么都不画：不然英文用户一打开会先闪一下中文的分页（3.3.2）
+  if (!status) return error ? <p className="banner error">{error}</p> : null;
+
   return (
     <div className="shell">
       <nav className="side">

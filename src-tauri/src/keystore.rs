@@ -38,7 +38,7 @@ impl KeyStore for SystemKeyStore {
                 AppError::KeyStore(
                     crate::tr!(
                         "凭据管理器里的主密钥长度不对",
-                        "凭据管理器里的主密钥长度不对"
+                        "The master key in Credential Manager has the wrong length"
                     )
                     .into(),
                 )

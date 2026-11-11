@@ -2,7 +2,7 @@
 // 规则（引用的形状、轮盘合法性、导入检查）在 Rust 的 emotes 模块，这里只拼地址。参考 lolPing src/shared/emotes.ts（MIT，© 2026 Danrui Meng）。
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { EMOTE_CATALOG } from "./emoteCatalog";
-import { k, t } from "../i18n";
+import { k, lang, t } from "../i18n";
 
 /** 表情在屏幕上停留的秒数。 */
 export const EMOTE_DURATION_S = 3;
@@ -41,5 +41,6 @@ export function emoteName(ref: string, custom: readonly CustomEmote[]): string {
   const c = custom.find((x) => x.id === ref);
   if (c) return c.name;
   const e = EMOTE_CATALOG.find((x) => x.slug === ref);
-  return e ? e.nameZh : t("未知表情");
+  // 内置表情：表里本来就有 Riot 的英文名和中文名，按界面语言选（3.3.2）
+  return e ? (lang() === "en" ? e.name : e.nameZh) : t("未知表情");
 }

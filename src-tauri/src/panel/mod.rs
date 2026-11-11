@@ -288,12 +288,12 @@ impl Runner {
 
     fn name(&self, m: &MemberId) -> String {
         if Some(*m) == self.me {
-            return crate::tr!("我", "我").into();
+            return crate::tr!("我", "Me").into();
         }
         self.names
             .get(m)
             .cloned()
-            .unwrap_or_else(|| crate::tr!("队友", "队友").into())
+            .unwrap_or_else(|| crate::tr!("队友", "Teammate").into())
     }
 
     fn window(&mut self, which: Which) -> Option<WebviewWindow> {
@@ -432,7 +432,7 @@ fn reveal(w: &WebviewWindow) {
 fn panel(app: &AppHandle) -> Result<Panel, String> {
     app.try_state::<AppState>()
         .map(|s| s.panel.clone())
-        .ok_or_else(|| crate::tr!("程序还没启动好", "程序还没启动好").into())
+        .ok_or_else(|| crate::tr!("程序还没启动好", "lolPing hasn't finished starting").into())
 }
 
 #[cfg(test)]

@@ -103,7 +103,7 @@ fn set_autostart(app: &AppHandle, on: bool) -> Result<(), String> {
     done.map_err(|e| {
         crate::tr!(
             format!("开机启动没设置上：{e}"),
-            format!("开机启动没设置上：{e}")
+            format!("Couldn't set up start with Windows: {e}")
         )
     })
 }
@@ -251,7 +251,7 @@ pub fn status_get(state: State<'_, AppState>) -> Status {
 #[tauri::command]
 pub fn open_accessibility_settings() -> Result<(), String> {
     if !cfg!(target_os = "macos") {
-        return Err(crate::tr!("只有 macOS 要授权", "只有 macOS 要授权").into());
+        return Err(crate::tr!("只有 macOS 要授权", "Only macOS needs this permission").into());
     }
     std::process::Command::new("open")
         .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
@@ -260,7 +260,7 @@ pub fn open_accessibility_settings() -> Result<(), String> {
         .map_err(|e| {
             crate::tr!(
                 format!("打不开系统设置：{e}"),
-                format!("打不开系统设置：{e}")
+                format!("Couldn't open System Settings: {e}")
             )
         })
 }
@@ -281,10 +281,14 @@ fn project_page(site: &str) -> Option<&'static str> {
 pub fn open_project_page(site: String) -> Result<(), String> {
     let url = project_page(&site).ok_or(crate::tr!(
         "只能打开 GitHub 或 Gitee 上的项目页",
-        "只能打开 GitHub 或 Gitee 上的项目页"
+        "Only the project pages on GitHub or Gitee can be opened"
     ))?;
-    tauri_plugin_opener::open_url(url, None::<&str>)
-        .map_err(|e| crate::tr!(format!("打不开浏览器：{e}"), format!("打不开浏览器：{e}")))
+    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| {
+        crate::tr!(
+            format!("打不开浏览器：{e}"),
+            format!("Couldn't open the browser: {e}")
+        )
+    })
 }
 
 /// 授权后重开程序：键鼠监听只在启动时建。
@@ -345,7 +349,7 @@ pub fn emote_import(
         use base64::Engine;
         base64::engine::general_purpose::STANDARD
             .decode(s)
-            .map_err(|_| crate::tr!("文件数据格式不对", "文件数据格式不对").to_string())
+            .map_err(|_| crate::tr!("文件数据格式不对", "The file data is malformed").to_string())
     };
     let still = decode(&still)?;
     let anim = anim.as_deref().map(decode).transpose()?;

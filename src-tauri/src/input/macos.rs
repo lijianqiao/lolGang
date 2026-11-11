@@ -233,12 +233,12 @@ fn run(
         let message = if trusted {
             crate::tr!(
                 "系统里已经允许了 lolPing，但还是读不到键鼠：多半是更新后系统把它当成了新程序。请在「系统设置 → 隐私与安全性 → 辅助功能」里把 lolPing 删掉再加回来，然后重开",
-                "系统里已经允许了 lolPing，但还是读不到键鼠：多半是更新后系统把它当成了新程序。请在「系统设置 → 隐私与安全性 → 辅助功能」里把 lolPing 删掉再加回来，然后重开"
+                "lolPing is already allowed, but keyboard and mouse still can't be read: after an update macOS most likely treats it as a new app. Remove lolPing in System Settings → Privacy & Security → Accessibility, add it back, then restart"
             )
         } else {
             crate::tr!(
                 "读不到键鼠：请在「系统设置 → 隐私与安全性 → 辅助功能」里允许 lolPing，然后重开",
-                "读不到键鼠：请在「系统设置 → 隐私与安全性 → 辅助功能」里允许 lolPing，然后重开"
+                "Can't read keyboard and mouse: allow lolPing in System Settings → Privacy & Security → Accessibility, then restart"
             )
         };
         let _ = ready.send(Err(message.to_string()));

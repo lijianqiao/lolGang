@@ -55,7 +55,7 @@ pub type MicBuffer = Arc<Mutex<Vec<f32>>>;
 
 /// 开麦克风：录到的声音（16 kHz 单声道）追加到 `buffer`。
 pub fn open_mic(id: &str, buffer: MicBuffer) -> Result<Stream, String> {
-    let dev = mic_device(id).ok_or(crate::tr!("找不到麦克风", "找不到麦克风"))?;
+    let dev = mic_device(id).ok_or(crate::tr!("找不到麦克风", "No microphone found"))?;
     let cfg = dev.default_input_config().map_err(|e| e.to_string())?;
     let (channels, rate) = (usize::from(cfg.channels()).max(1), cfg.sample_rate());
     let config = cfg.config();
@@ -67,7 +67,7 @@ pub fn open_mic(id: &str, buffer: MicBuffer) -> Result<Stream, String> {
         f => {
             return Err(crate::tr!(
                 format!("麦克风的采样格式 {f} 不支持"),
-                format!("麦克风的采样格式 {f} 不支持")
+                format!("The microphone's sample format {f} isn't supported")
             ));
         }
     }?;
@@ -115,7 +115,7 @@ pub struct Speaker {
 pub fn open_speaker() -> Result<Speaker, String> {
     let dev = cpal::default_host()
         .default_output_device()
-        .ok_or(crate::tr!("找不到扬声器", "找不到扬声器"))?;
+        .ok_or(crate::tr!("找不到扬声器", "No speaker found"))?;
     let cfg = dev.default_output_config().map_err(|e| e.to_string())?;
     let (channels, rate) = (usize::from(cfg.channels()).max(1), cfg.sample_rate());
     let config = cfg.config();
@@ -129,7 +129,7 @@ pub fn open_speaker() -> Result<Speaker, String> {
         f => {
             return Err(crate::tr!(
                 format!("扬声器的采样格式 {f} 不支持"),
-                format!("扬声器的采样格式 {f} 不支持")
+                format!("The speaker's sample format {f} isn't supported")
             ));
         }
     }?;

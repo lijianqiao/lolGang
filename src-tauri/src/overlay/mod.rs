@@ -234,7 +234,7 @@ impl Actor {
                             &d.key,
                             "text:spawn",
                             json!({
-                                "owner": "preview", "text": crate::tr!("大龙刷了，集合打团！", "大龙刷了，集合打团！"), "name": crate::tr!("我", "我"), "color": "#c8aa6e",
+                                "owner": "preview", "text": crate::tr!("大龙刷了，集合打团！", "Baron is up, group up!"), "name": crate::tr!("我", "Me"), "color": "#c8aa6e",
                                 "style": style, "size": size, "effect": effect, "x": w / 2.0, "y": h / 2.0,
                             }),
                         );
@@ -423,7 +423,7 @@ impl Actor {
             .names
             .get(&from)
             .cloned()
-            .unwrap_or_else(|| crate::tr!("队友", "队友").into());
+            .unwrap_or_else(|| crate::tr!("队友", "Teammate").into());
         let owner = hex(&from[..6]);
         self.show(
             &d.key,
@@ -447,7 +447,7 @@ impl Actor {
             .names
             .get(&from)
             .cloned()
-            .unwrap_or_else(|| crate::tr!("队友", "队友").into());
+            .unwrap_or_else(|| crate::tr!("队友", "Teammate").into());
         let tag = json!({ "name": name, "color": tag_color(&from) });
         self.show(
             &d.key,
@@ -469,10 +469,10 @@ impl Actor {
                 self.names
                     .get(&m)
                     .cloned()
-                    .unwrap_or_else(|| crate::tr!("队友", "队友").into()),
+                    .unwrap_or_else(|| crate::tr!("队友", "Teammate").into()),
                 tag_color(&m),
             ),
-            None => ("self".into(), crate::tr!("我", "我").into(), "#c8aa6e"),
+            None => ("self".into(), crate::tr!("我", "Me").into(), "#c8aa6e"),
         };
         self.show(
             &d.key,
@@ -531,7 +531,7 @@ impl Actor {
                     .names
                     .get(m)
                     .cloned()
-                    .unwrap_or_else(|| crate::tr!("队友", "队友").into());
+                    .unwrap_or_else(|| crate::tr!("队友", "Teammate").into());
                 json!({ "name": name, "color": tag_color(m) })
             })
             .collect();

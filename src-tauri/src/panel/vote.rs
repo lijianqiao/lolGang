@@ -72,30 +72,38 @@ impl Runner {
         kind: VoteKind,
         target: Option<MemberId>,
     ) -> Result<(), String> {
-        let s = self
-            .settings()
-            .ok_or(crate::tr!("程序还没启动好", "程序还没启动好"))?;
+        let s = self.settings().ok_or(crate::tr!(
+            "程序还没启动好",
+            "lolPing hasn't finished starting"
+        ))?;
         if !s.team_votes {
             return Err(crate::tr!(
                 "投票已经关掉了，在「功能」页打开",
-                "投票已经关掉了，在「功能」页打开"
+                "Votes are off. Turn them on in Features"
             )
             .into());
         }
         if !self.in_team {
-            return Err(crate::tr!("不在队伍里", "不在队伍里").into());
+            return Err(crate::tr!("不在队伍里", "Not in a team").into());
         }
         if self.tally.view().is_some() || self.result_until.is_some() {
-            return Err(crate::tr!("已经有一个投票在进行", "已经有一个投票在进行").into());
+            return Err(crate::tr!("已经有一个投票在进行", "A vote is already in progress").into());
         }
-        let me = self
-            .me()
-            .ok_or(crate::tr!("读不到自己的身份", "读不到自己的身份"))?;
+        let me = self.me().ok_or(crate::tr!(
+            "读不到自己的身份",
+            "Couldn't read your own identity"
+        ))?;
         if kind == VoteKind::Kick {
             match target {
-                Some(t) if t == me => return Err(crate::tr!("不能踢自己", "不能踢自己").into()),
+                Some(t) if t == me => {
+                    return Err(crate::tr!("不能踢自己", "You can't kick yourself").into());
+                }
                 Some(t) if self.names.contains_key(&t) => {}
-                _ => return Err(crate::tr!("队伍里没有这个人", "队伍里没有这个人").into()),
+                _ => {
+                    return Err(
+                        crate::tr!("队伍里没有这个人", "That person isn't in the team").into(),
+                    );
+                }
             }
         }
         let id = crypto::random_bytes::<4>()
@@ -184,9 +192,13 @@ impl Runner {
                 let _ = crate::team::commands::team_leave(app.clone()).await;
                 if let Some(state) = app.try_state::<AppState>() {
                     state.overlays.send(Msg::Toast {
-                        title: crate::tr!("队友投票把你请出了队伍", "队友投票把你请出了队伍")
+                        title: crate::tr!(
+                            "队友投票把你请出了队伍",
+                            "Your teammates voted you out of the team"
+                        )
+                        .into(),
+                        body: crate::tr!("可以用队伍码再进来", "You can rejoin with the team code")
                             .into(),
-                        body: crate::tr!("可以用队伍码再进来", "可以用队伍码再进来").into(),
                     });
                 }
             });
@@ -203,13 +215,13 @@ impl Runner {
                     o.voters
                 ),
                 format!(
-                    "投降投票{}（{}/{}）",
-                    if o.passed { "通过" } else { "没通过" },
+                    "Surrender vote {} ({}/{})",
+                    if o.passed { "passed" } else { "failed" },
                     o.yes,
                     o.voters
                 )
             ),
-            VoteKind::Ready if o.passed => crate::tr!("大家都准备好了", "大家都准备好了").into(),
+            VoteKind::Ready if o.passed => crate::tr!("大家都准备好了", "Everyone is ready").into(),
             VoteKind::Ready => {
                 let names: Vec<String> = o
                     .declined
@@ -219,7 +231,7 @@ impl Runner {
                     .collect();
                 crate::tr!(
                     format!("还没准备好：{}", names.join("、")),
-                    format!("还没准备好：{}", names.join("、"))
+                    format!("Not ready: {}", names.join(", "))
                 )
             }
             VoteKind::Kick => {
@@ -232,8 +244,8 @@ impl Runner {
                         o.voters
                     ),
                     format!(
-                        "踢出 {name}：{}（{}/{}）",
-                        if o.passed { "通过" } else { "没通过" },
+                        "Kick {name}: {} ({}/{})",
+                        if o.passed { "passed" } else { "failed" },
                         o.yes,
                         o.voters
                     )
@@ -248,11 +260,11 @@ impl Runner {
         VoteDto {
             kind: o.kind,
             title: match o.kind {
-                VoteKind::Ff => crate::tr!("投降投票", "投降投票").into(),
-                VoteKind::Ready => crate::tr!("准备确认", "准备确认").into(),
+                VoteKind::Ff => crate::tr!("投降投票", "Surrender vote").into(),
+                VoteKind::Ready => crate::tr!("准备确认", "Ready check").into(),
                 VoteKind::Kick => {
                     let name = o.target.map(|t| self.name(&t)).unwrap_or_default();
-                    crate::tr!(format!("踢出 {name}？"), format!("踢出 {name}？"))
+                    crate::tr!(format!("踢出 {name}？"), format!("Kick {name}?"))
                 }
             },
             voters: o
@@ -332,7 +344,9 @@ pub async fn vote_start(
     target: Option<String>,
 ) -> Result<(), String> {
     let target = match target {
-        Some(hex) => Some(parse_member(&hex).ok_or(crate::tr!("队员编号不对", "队员编号不对"))?),
+        Some(hex) => {
+            Some(parse_member(&hex).ok_or(crate::tr!("队员编号不对", "Invalid member ID"))?)
+        }
         None => None,
     };
     let (reply, rx) = oneshot::channel();
@@ -342,7 +356,7 @@ pub async fn vote_start(
         reply,
     });
     rx.await
-        .map_err(|_| crate::tr!("投票没有响应", "投票没有响应").to_string())?
+        .map_err(|_| crate::tr!("投票没有响应", "The vote didn't respond").to_string())?
 }
 
 #[tauri::command]

@@ -19,20 +19,20 @@ const TOOLTIP: &str = "lolPing";
 
 // 菜单上的字，按当前语言。换语言时 `relabel` 照这些重写一遍（3.3.2）。
 fn pings_text() -> &'static str {
-    crate::tr!("信号开启", "信号开启")
+    crate::tr!("信号开启", "Pings on")
 }
 fn open_text() -> &'static str {
-    crate::tr!("打开控制面板", "打开控制面板")
+    crate::tr!("打开控制面板", "Open control panel")
 }
 fn quit_text() -> &'static str {
-    crate::tr!("退出", "退出")
+    crate::tr!("退出", "Quit")
 }
 
 /// 「检查更新」，查到新版本时是「更新到 vX」。
 fn update_text(version: Option<&str>) -> String {
     match version {
-        None => crate::tr!("检查更新", "检查更新").to_string(),
-        Some(v) => crate::tr!(format!("更新到 v{v}"), format!("更新到 v{v}")),
+        None => crate::tr!("检查更新", "Check for updates").to_string(),
+        Some(v) => crate::tr!(format!("更新到 v{v}"), format!("Update to v{v}")),
     }
 }
 

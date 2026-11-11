@@ -152,7 +152,7 @@ fn run(
                 }
                 Err(crate::tr!(
                     "装不上键鼠钩子（SetWindowsHookEx 失败）",
-                    "装不上键鼠钩子（SetWindowsHookEx 失败）"
+                    "Couldn't install the keyboard and mouse hooks (SetWindowsHookEx failed)"
                 )
                 .to_string())
             }

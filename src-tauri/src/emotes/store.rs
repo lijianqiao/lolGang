@@ -113,10 +113,12 @@ pub enum ImportError {
 impl std::fmt::Display for ImportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            ImportError::Type => crate::tr!("文件类型不对", "文件类型不对"),
-            ImportError::Size => crate::tr!("文件太大", "文件太大"),
-            ImportError::Full => crate::tr!("最多导入 24 个表情", "最多导入 24 个表情"),
-            ImportError::Disk => crate::tr!("写不进数据目录", "写不进数据目录"),
+            ImportError::Type => crate::tr!("文件类型不对", "Wrong file type"),
+            ImportError::Size => crate::tr!("文件太大", "File too large"),
+            ImportError::Full => {
+                crate::tr!("最多导入 24 个表情", "You can import at most 24 emotes")
+            }
+            ImportError::Disk => crate::tr!("写不进数据目录", "Can't write to the data folder"),
         })
     }
 }

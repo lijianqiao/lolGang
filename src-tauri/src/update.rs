@@ -176,11 +176,15 @@ impl Sources {
 /// 插件对常见失败只给一句英文：说成人话。
 fn plain(e: &str) -> String {
     if e.contains("valid release JSON") {
-        crate::tr!("没有拿到可用的更新清单", "没有拿到可用的更新清单").into()
+        crate::tr!(
+            "没有拿到可用的更新清单",
+            "Didn't get a usable update manifest"
+        )
+        .into()
     } else if e.contains("timed out") || e.contains("operation timed out") {
-        crate::tr!("等了 15 秒没有回应", "等了 15 秒没有回应").into()
+        crate::tr!("等了 15 秒没有回应", "No response after 15 seconds").into()
     } else if e.contains("error sending request") {
-        crate::tr!("连接失败", "连接失败").into()
+        crate::tr!("连接失败", "Connection failed").into()
     } else {
         e.to_string()
     }
@@ -245,7 +249,11 @@ fn manifest_url_from_release(json: &str) -> Result<Url, String> {
         browser_download_url: String,
     }
     let release: Release = serde_json::from_str(json).map_err(|_| {
-        crate::tr!("Gitee 返回的不是发行版信息", "Gitee 返回的不是发行版信息").to_string()
+        crate::tr!(
+            "Gitee 返回的不是发行版信息",
+            "Gitee didn't return release information"
+        )
+        .to_string()
     })?;
     let asset = release
         .assets
@@ -253,12 +261,12 @@ fn manifest_url_from_release(json: &str) -> Result<Url, String> {
         .find(|a| a.name == "latest.json")
         .ok_or(crate::tr!(
             "Gitee 上最新的发行版里没有 latest.json",
-            "Gitee 上最新的发行版里没有 latest.json"
+            "The latest release on Gitee has no latest.json"
         ))?;
     Url::parse(&asset.browser_download_url).map_err(|_| {
         crate::tr!(
             "Gitee 上 latest.json 的地址不对",
-            "Gitee 上 latest.json 的地址不对"
+            "The latest.json address on Gitee is invalid"
         )
         .to_string()
     })
@@ -323,7 +331,7 @@ async fn check_sources<R: Runtime>(
             .map_err(|e| {
                 crate::tr!(
                     format!("连不上 GitHub（{e}）。国内网络可以点「国内检查更新」"),
-                    format!("连不上 GitHub（{e}）。国内网络可以点「国内检查更新」")
+                    format!("Can't reach GitHub ({e}). In mainland China, try “Check via Gitee”")
                 )
             }),
         Mode::Gitee => check_gitee(app, src)
@@ -332,7 +340,7 @@ async fn check_sources<R: Runtime>(
             .map_err(|e| {
                 crate::tr!(
                     format!("Gitee 查不到（{e}）"),
-                    format!("Gitee 查不到（{e}）")
+                    format!("Gitee check failed ({e})")
                 )
             }),
         Mode::GithubThenGitee => match check_manifest(app, src, src.github.clone()).await {
@@ -343,7 +351,7 @@ async fn check_sources<R: Runtime>(
                 .map_err(|gitee| {
                     crate::tr!(
                         format!("GitHub 和 Gitee 都查不到。GitHub：{github}；Gitee：{gitee}"),
-                        format!("GitHub 和 Gitee 都查不到。GitHub：{github}；Gitee：{gitee}")
+                        format!("Neither GitHub nor Gitee could be checked. GitHub: {github}; Gitee: {gitee}")
                     )
                 }),
         },
@@ -384,7 +392,13 @@ pub async fn check(app: &AppHandle, quiet: bool, mode: Mode) -> UpdateView {
     if crate::dev_instance().is_some() && test_update().is_none() {
         set(app, |i| {
             i.phase = Some(Phase::Idle);
-            i.error = Some(crate::tr!("测试实例不检查更新", "测试实例不检查更新").into());
+            i.error = Some(
+                crate::tr!(
+                    "测试实例不检查更新",
+                    "Test instances don't check for updates"
+                )
+                .into(),
+            );
         });
         return view(app);
     }
@@ -408,10 +422,13 @@ pub async fn check(app: &AppHandle, quiet: bool, mode: Mode) -> UpdateView {
                 state.overlays.send(Msg::Toast {
                     title: crate::tr!(
                         format!("lolPing 有新版本 {version}"),
-                        format!("lolPing 有新版本 {version}")
+                        format!("lolPing {version} is available")
                     ),
-                    body: crate::tr!("在控制面板的「关于」里更新", "在控制面板的「关于」里更新")
-                        .into(),
+                    body: crate::tr!(
+                        "在控制面板的「关于」里更新",
+                        "Update from About in the control panel"
+                    )
+                    .into(),
                 });
             }
         }
@@ -429,7 +446,7 @@ pub async fn check(app: &AppHandle, quiet: bool, mode: Mode) -> UpdateView {
                 i.source = None;
                 i.error = Some(crate::tr!(
                     format!("检查更新失败：{reason}"),
-                    format!("检查更新失败：{reason}")
+                    format!("Update check failed: {reason}")
                 ));
             });
             if !quiet {
@@ -491,7 +508,7 @@ pub async fn update_install(app: AppHandle) -> Result<(), String> {
             let inner = s.updates.inner.lock().expect("更新锁没有中毒");
             inner.found.clone().map(|u| (u, inner.source))
         })
-        .ok_or(crate::tr!("还没有查到新版本", "还没有查到新版本"))?;
+        .ok_or(crate::tr!("还没有查到新版本", "No new version found yet"))?;
     set(&app, |i| {
         i.phase = Some(Phase::Downloading);
         i.progress = Some(0.0);
@@ -516,20 +533,20 @@ pub async fn update_install(app: AppHandle) -> Result<(), String> {
             );
             Err(crate::tr!(
                 format!("测试实例不安装：已下载 {n} 字节，签名校验通过（来自 {from}）"),
-                format!("测试实例不安装：已下载 {n} 字节，签名校验通过（来自 {from}）")
+                format!("Test instance, not installing: downloaded {n} bytes, signature verified (from {from})")
             ))
         }
         Ok(bytes) => {
             set(&app, |i| i.phase = Some(Phase::Installing));
             update
                 .install(bytes)
-                .map_err(|e| crate::tr!(format!("更新没装上：{e}"), format!("更新没装上：{e}")))
+                .map_err(|e| crate::tr!(format!("更新没装上：{e}"), format!("The update wasn't installed: {e}")))
         }
         Err(DownloadError::TimedOut) => Err(match source {
-            Some(Source::Gitee) => crate::tr!("下载太慢或卡住了（超过 10 分钟），已经停下，请稍后再试", "下载太慢或卡住了（超过 10 分钟），已经停下，请稍后再试").to_string(),
-            _ => crate::tr!("下载太慢或卡住了（超过 10 分钟），已经停下。国内网络可以点「国内检查更新」，从 Gitee 下载", "下载太慢或卡住了（超过 10 分钟），已经停下。国内网络可以点「国内检查更新」，从 Gitee 下载").to_string(),
+            Some(Source::Gitee) => crate::tr!("下载太慢或卡住了（超过 10 分钟），已经停下，请稍后再试", "The download was too slow or stuck (over 10 minutes) and was stopped. Please try again later").to_string(),
+            _ => crate::tr!("下载太慢或卡住了（超过 10 分钟），已经停下。国内网络可以点「国内检查更新」，从 Gitee 下载", "The download was too slow or stuck (over 10 minutes) and was stopped. In mainland China, try “Check via Gitee” to download from Gitee").to_string(),
         }),
-        Err(DownloadError::Failed(e)) => Err(crate::tr!(format!("更新没装上：{e}"), format!("更新没装上：{e}"))),
+        Err(DownloadError::Failed(e)) => Err(crate::tr!(format!("更新没装上：{e}"), format!("The update wasn't installed: {e}"))),
     };
     match result {
         Ok(()) => app.restart(),

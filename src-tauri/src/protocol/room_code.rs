@@ -33,14 +33,20 @@ impl std::fmt::Display for RoomCodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             RoomCodeError::BadPrefix => {
-                crate::tr!("队伍码应以 GT3 或 GT2 开头", "队伍码应以 GT3 或 GT2 开头")
+                crate::tr!(
+                    "队伍码应以 GT3 或 GT2 开头",
+                    "A team code starts with GT3 or GT2"
+                )
             }
             RoomCodeError::BadEncoding => {
-                crate::tr!("队伍码长度或字符不对", "队伍码长度或字符不对")
+                crate::tr!(
+                    "队伍码长度或字符不对",
+                    "The team code has the wrong length or characters"
+                )
             }
             RoomCodeError::BadCheck => crate::tr!(
                 "队伍码校验位不对，请检查是否抄错",
-                "队伍码校验位不对，请检查是否抄错"
+                "The team code's check digit is wrong. Check it was copied correctly"
             ),
         })
     }

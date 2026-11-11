@@ -7,7 +7,8 @@ import path from "node:path";
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "..");
 const enFile = path.join(root, "src", "i18n", "en.ts");
-const CJK = /[一-鿿　-〿！-～]/;
+// 汉字和中文标点；不算全角空格（英文里也拿它留空：「　Pause」）
+const CJK = /[一-鿿、-〿！-～]/;
 
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

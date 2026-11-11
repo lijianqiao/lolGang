@@ -32,10 +32,13 @@ pub enum CryptoError {
 impl std::fmt::Display for CryptoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            CryptoError::Random => crate::tr!("系统随机数不可用", "系统随机数不可用"),
+            CryptoError::Random => crate::tr!(
+                "系统随机数不可用",
+                "The system random number generator is unavailable"
+            ),
             CryptoError::Open => crate::tr!(
                 "解密失败：密钥不对或数据被改动",
-                "解密失败：密钥不对或数据被改动"
+                "Decryption failed: wrong key or tampered data"
             ),
         })
     }
