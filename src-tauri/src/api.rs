@@ -247,6 +247,24 @@ pub fn open_accessibility_settings() -> Result<(), String> {
         .map_err(|e| format!("打不开系统设置：{e}"))
 }
 
+/// 「关于」页「给项目点个 Star」的两个地址（3.3.2）。控制面板只能说要哪一个，地址只在这里。
+fn project_page(site: &str) -> Option<&'static str> {
+    match site {
+        "github" => Some("https://github.com/lijianqiao/lolPing-rust"),
+        "gitee" => Some("https://gitee.com/lijianqiao/lolPing-rust"),
+        _ => None,
+    }
+}
+
+/// 用系统默认浏览器打开项目在 GitHub 或 Gitee 上的页面（3.3.2）。
+/// 只用 opener 插件里的 `open_url` 函数，不把插件注册进程序：控制面板没有它的任何命令和权限，
+/// 能做的只有这个命令——打开上面写死的两个地址之一，传别的什么都不打开。
+#[tauri::command]
+pub fn open_project_page(site: String) -> Result<(), String> {
+    let url = project_page(&site).ok_or("只能打开 GitHub 或 Gitee 上的项目页")?;
+    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| format!("打不开浏览器：{e}"))
+}
+
 /// 授权后重开程序：键鼠监听只在启动时建。
 #[tauri::command]
 pub fn app_relaunch(app: AppHandle) {
@@ -417,5 +435,39 @@ pub fn text_preview(state: State<'_, AppState>, style: String, size: u32, effect
 pub fn emote_preview(state: State<'_, AppState>, emote: String) {
     if emotes::is_ref_shape(&emote) {
         state.overlays.send(Msg::EmotePreview(emote));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_page_only_knows_the_two_project_addresses() {
+        assert_eq!(
+            project_page("github"),
+            Some("https://github.com/lijianqiao/lolPing-rust")
+        );
+        assert_eq!(
+            project_page("gitee"),
+            Some("https://gitee.com/lijianqiao/lolPing-rust")
+        );
+        // 别的一概不认：控制面板传不进任何地址
+        for other in [
+            "",
+            "GitHub",
+            "gitee ",
+            "https://example.com",
+            "github.com/lijianqiao/lolPing-rust",
+            "file:///C:/Windows",
+        ] {
+            assert_eq!(project_page(other), None, "{other:?}");
+        }
+    }
+
+    #[test]
+    fn open_project_page_refuses_anything_else_without_opening() {
+        let err = open_project_page("https://example.com".into()).unwrap_err();
+        assert!(err.contains("GitHub"), "{err}");
     }
 }

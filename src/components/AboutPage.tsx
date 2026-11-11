@@ -1,10 +1,11 @@
-// 「关于」页：版本和更新、lolPing 致谢和许可、Riot 素材声明（需求 4.7、4.9）。
+// 「关于」页：版本和更新、去 GitHub / Gitee 点 Star（3.3.2）、lolPing 致谢和许可、Riot 素材声明（需求 4.7、4.9）。
 // 更新的状态在 Rust 的 update.rs：打开时取一次，之后跟着 "update://changed" 变。3.3.1 起两个按钮：「检查更新」走 GitHub、「国内检查更新」走 Gitee。
 import { getVersion } from "@tauri-apps/api/app";
 import { useEffect, useState } from "react";
 import notices from "../../THIRD_PARTY_NOTICES.md?raw";
-import { onUpdate, updateCheck, updateCheckCn, updateInstall, updateView, type Settings, type UpdateView } from "../api";
+import { onUpdate, openProjectPage, updateCheck, updateCheckCn, updateInstall, updateView, type Settings, type UpdateView } from "../api";
 import { Row, Switch, Tip } from "./controls";
+import { BrandIcon } from "./Icon";
 
 interface Props {
   settings: Settings;
@@ -83,6 +84,32 @@ function UpdateCard({ settings, onChange }: Props) {
   );
 }
 
+/** 请用户去 GitHub / Gitee 点 Star（3.3.2）。打不开浏览器时把原因写在按钮下面。 */
+function StarCard() {
+  const [error, setError] = useState("");
+  const open = (site: "github" | "gitee") => {
+    setError("");
+    openProjectPage(site).catch((e: unknown) => setError(String(e)));
+  };
+  return (
+    <section className="card prose">
+      <h2>给项目点个 Star</h2>
+      <p>觉得好用的话，去 GitHub 或 Gitee 给项目点个 Star ⭐，让更多人看到。国内打不开 GitHub 就点 Gitee。</p>
+      <div className="link-buttons">
+        <button className="soft" onClick={() => open("github")}>
+          <BrandIcon name="github" />
+          GitHub
+        </button>
+        <button className="soft" onClick={() => open("gitee")}>
+          <BrandIcon name="gitee" />
+          Gitee
+        </button>
+      </div>
+      {error && <small className="hint warn">{error}</small>}
+    </section>
+  );
+}
+
 export function AboutPage({ settings, onChange }: Props) {
   const [version, setVersion] = useState("");
   useEffect(() => {
@@ -93,6 +120,7 @@ export function AboutPage({ settings, onChange }: Props) {
     <div className="page">
       <h1>关于</h1>
       <UpdateCard settings={settings} onChange={onChange} />
+      <StarCard />
       <section className="card prose">
         <h2>lolPing {version}</h2>
         <p>和开黑的朋友在桌面上互发英雄联盟信号和表情、说话、投票。免费，不需要服务器。</p>

@@ -148,6 +148,7 @@ pub fn run() {
             api::emote_remove,
             api::emote_preview,
             api::open_accessibility_settings,
+            api::open_project_page,
             api::app_relaunch,
             api::voice_view,
             api::voice_test,

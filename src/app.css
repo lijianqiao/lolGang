@@ -1143,6 +1143,13 @@ p .tip {
 .prose summary:hover {
   color: var(--text);
 }
+/* 「给项目点个 Star」卡片的两个按钮（3.3.2） */
+.link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
 .notices {
   max-height: 280px;
   overflow: auto;

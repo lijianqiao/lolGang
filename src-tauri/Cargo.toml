@@ -48,6 +48,7 @@ opus-rs = "0.1"
 rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-platform-verifier = "0.7.1"
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+tauri-plugin-opener = "2.7.3"
 
 
 # 只有 input/win32.rs、input/macos.rs 能写 unsafe（这两个文件开头放开了），别处写了编译不过（3.2.0）

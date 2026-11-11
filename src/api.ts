@@ -106,6 +106,8 @@ export const suspendInput = (on: boolean): Promise<void> => invoke("input_suspen
 export const previewPing = (id: PingId): Promise<void> => invoke("ping_preview", { id });
 /** macOS：打开「隐私与安全性 → 辅助功能」。 */
 export const openAccessibilitySettings = (): Promise<void> => invoke("open_accessibility_settings");
+/** 用系统默认浏览器打开项目在 GitHub 或 Gitee 上的页面（「关于」页，3.3.2）。地址写死在 Rust 里，这里只能选哪一个。 */
+export const openProjectPage = (site: "github" | "gitee"): Promise<void> => invoke("open_project_page", { site });
 /** 重开程序（授权后监听才建得起来）。 */
 export const relaunchApp = (): Promise<void> => invoke("app_relaunch");
 export const previewEmote = (emote: string): Promise<void> => invoke("emote_preview", { emote });

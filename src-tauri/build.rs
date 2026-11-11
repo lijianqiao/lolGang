@@ -13,6 +13,7 @@ const COMMANDS: &[&str] = &[
     "emote_remove",
     "emote_preview",
     "open_accessibility_settings",
+    "open_project_page",
     "app_relaunch",
     "voice_view",
     "voice_test",
