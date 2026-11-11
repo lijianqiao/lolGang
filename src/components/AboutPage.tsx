@@ -1,14 +1,21 @@
 // 「关于」页：版本和更新、lolPing 致谢和许可、Riot 素材声明（需求 4.7、4.9）。
-// 更新的状态在 Rust 的 update.rs：打开时取一次，之后跟着 "update://changed" 变。
+// 更新的状态在 Rust 的 update.rs：打开时取一次，之后跟着 "update://changed" 变。3.3.1 起两个按钮：「检查更新」走 GitHub、「国内检查更新」走 Gitee。
 import { getVersion } from "@tauri-apps/api/app";
 import { useEffect, useState } from "react";
 import notices from "../../THIRD_PARTY_NOTICES.md?raw";
-import { onUpdate, updateCheck, updateInstall, updateView, type Settings, type UpdateView } from "../api";
+import { onUpdate, updateCheck, updateCheckCn, updateInstall, updateView, type Settings, type UpdateView } from "../api";
 import { Row, Switch, Tip } from "./controls";
 
 interface Props {
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
+}
+
+const SOURCE_TEXT = { github: "GitHub", gitee: "Gitee" } as const;
+
+/** 「（来自 GitHub）」：这次实际来自哪个更新源（3.3.1）。 */
+function from(u: UpdateView): string {
+  return u.source ? `（来自 ${SOURCE_TEXT[u.source]}）` : "";
 }
 
 /** 状态那一行字。 */
@@ -17,9 +24,9 @@ function phaseLine(u: UpdateView): string {
     case "checking":
       return "正在检查…";
     case "upToDate":
-      return "已经是最新版本";
+      return `已经是最新版本${from(u)}`;
     case "available":
-      return `有新版本 ${u.version}`;
+      return `有新版本 ${u.version}${from(u)}`;
     case "downloading":
       return u.progress === null ? "正在下载…" : `正在下载 ${Math.round(u.progress * 100)}%`;
     case "installing":
@@ -49,15 +56,18 @@ function UpdateCard({ settings, onChange }: Props) {
           {phaseLine(u) && <small className={`hint${u.phase === "failed" ? " warn" : ""}`}>{phaseLine(u)}</small>}
         </div>
         <div className="row-control">
-          {u.phase === "available" ? (
+          {u.phase === "available" && (
             <button className="primary" disabled={busy} onClick={() => void updateInstall().catch(() => undefined)}>
               更新并重启
             </button>
-          ) : (
-            <button className="soft" disabled={busy} onClick={() => void updateCheck()}>
-              检查更新
-            </button>
           )}
+          <button className="soft" disabled={busy} onClick={() => void updateCheck()}>
+            检查更新
+          </button>
+          <button className="soft" disabled={busy} onClick={() => void updateCheckCn()}>
+            国内检查更新
+          </button>
+          <Tip text="「检查更新」去 GitHub 查，国内网络可能要开代理；「国内检查更新」去 Gitee 查，国内不用代理。查到新版本后，从查到它的那边下载" />
         </div>
       </div>
       {u.phase === "downloading" && (
@@ -66,7 +76,7 @@ function UpdateCard({ settings, onChange }: Props) {
       {u.version && u.notes && (u.phase === "available" || u.phase === "downloading") && (
         <pre className="update-notes">{u.notes}</pre>
       )}
-      <Row label="自动检查更新" tip="启动后和每 6 小时查一次，查到只提示，你点了才下载安装">
+      <Row label="自动检查更新" tip="启动后和每 6 小时查一次：先查 GitHub，连不上再查 Gitee。查到只提示，你点了才下载安装">
         <Switch label="自动检查更新" checked={settings.autoUpdateCheck} onChange={(autoUpdateCheck) => onChange({ autoUpdateCheck })} />
       </Row>
     </section>

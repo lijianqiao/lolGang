@@ -224,10 +224,15 @@ export interface UpdateView {
   /** 下载进度 0 到 1；不知道总大小时是 null。 */
   progress: number | null;
   error: string | null;
+  /** 这次实际来自哪个更新源；没查过、查失败时是 null。 */
+  source: "github" | "gitee" | null;
 }
 
 export const updateView = (): Promise<UpdateView> => invoke("update_view");
+/** 「检查更新」：只查 GitHub。 */
 export const updateCheck = (): Promise<UpdateView> => invoke("update_check");
+/** 「国内检查更新」：只查 Gitee（国内不用代理）。 */
+export const updateCheckCn = (): Promise<UpdateView> => invoke("update_check_cn");
 /** 下载、校验、安装，成功后程序会重启。 */
 export const updateInstall = (): Promise<void> => invoke("update_install");
 export const onUpdate = (cb: (v: UpdateView) => void): Promise<UnlistenFn> =>
