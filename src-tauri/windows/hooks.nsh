@@ -62,7 +62,13 @@ Var OldLolGangDir
       SetOutPath $INSTDIR
     ${EndIf}
     ${If} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
-      MessageBox MB_ICONSTOP "$INSTDIR 里已经有一个 lolPing.exe，多半是原版 lolPing（另一个作者的程序）。为了不覆盖它，请换一个安装目录。"
+      ; 安装包有中英两种界面（3.3.2），这句提示也按安装包的语言出。这个文件在语言加载之前引入，用不了 LangString，
+      ; 运行时看 $LANGUAGE：2052 是简体中文，其余（包括 1033 英文）都给英文
+      ${If} $LANGUAGE = 2052
+        MessageBox MB_ICONSTOP "$INSTDIR 里已经有一个 lolPing.exe，多半是原版 lolPing（另一个作者的程序）。为了不覆盖它，请换一个安装目录。"
+      ${Else}
+        MessageBox MB_ICONSTOP "$INSTDIR already contains a lolPing.exe, most likely the original lolPing (an app by another author). To avoid overwriting it, please choose a different folder."
+      ${EndIf}
       Abort
     ${EndIf}
   ${EndIf}

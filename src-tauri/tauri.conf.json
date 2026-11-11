@@ -70,6 +70,7 @@
         "installerHooks": "./windows/hooks.nsh",
         "installMode": "currentUser",
         "languages": [
+          "English",
           "SimpChinese"
         ],
         "displayLanguageSelector": false
