@@ -1,7 +1,8 @@
-// 「功能」页：开机启动、主题（原来的「外观」页），队伍里的三个功能（面板、文字、投票）的开关，
+// 「功能」页：开机启动、主题（原来的「外观」页）、语言（3.3.2），队伍里的三个功能（面板、文字、投票）的开关，
 // 以及屏幕上的字的样子（冒出还是弹幕、字号、字幕特效，能在屏幕中间预览）。
 // 这些功能的按键在「快捷键」页。改动交给 App 统一保存。
-import { textPreview, type Settings, type TextEffect, type Theme } from "../api";
+import { textPreview, type Language, type Settings, type TextEffect, type Theme } from "../api";
+import { t } from "../i18n";
 import { Icon } from "./Icon";
 import { Row, Slider, Switch } from "./controls";
 
@@ -18,6 +19,13 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: "system", label: "跟随系统" },
   { value: "dark", label: "深色" },
   { value: "light", label: "浅色" },
+];
+
+// 「中文」「English」用各自的写法，不跟着界面语言变：看不懂当前语言的人也找得到自己的语言
+const LANGUAGES: { value: Language; label: () => string }[] = [
+  { value: "system", label: () => t("features.language.system") },
+  { value: "zh", label: () => "中文" },
+  { value: "en", label: () => "English" },
 ];
 
 interface Props {
@@ -41,6 +49,16 @@ export function FeaturesPage({ settings: s, onChange }: Props) {
               <label key={t.value} className={`choice${s.theme === t.value ? " active" : ""}`}>
                 <input type="radio" name="theme" checked={s.theme === t.value} onChange={() => onChange({ theme: t.value })} />
                 {t.label}
+              </label>
+            ))}
+          </div>
+        </Row>
+        <Row label={t("features.language")} tip={t("features.language.tip")}>
+          <div className="choices" role="radiogroup" aria-label={t("features.language")}>
+            {LANGUAGES.map((l) => (
+              <label key={l.value} className={`choice${s.language === l.value ? " active" : ""}`}>
+                <input type="radio" name="language" checked={s.language === l.value} onChange={() => onChange({ language: l.value })} />
+                {l.label()}
               </label>
             ))}
           </div>

@@ -3,6 +3,7 @@
 // 能点、不拿焦点。每次显示时取一次队伍信息；做法参考 lolPing src/renderer/panel/roster.ts（MIT，© 2026 Danrui Meng）。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
 import type { Member, TeamView } from "../api";
 import { hueOf, initialOf, PRESET_COLORS, PRESET_ICONS } from "../avatars";
 import { el } from "../shared/dom";

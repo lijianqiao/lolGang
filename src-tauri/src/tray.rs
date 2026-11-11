@@ -1,6 +1,8 @@
 //! 托盘（需求 4.8）：单击图标打开控制面板；菜单是「信号开启」（勾选）、「打开控制面板」、
 //! 「检查更新」（查到新版本时变成「更新到 vX」）、「退出」。
-//! 只在 Rust 侧，不给前端开权限。
+//! 只在 Rust 侧，不给前端开权限。换语言时菜单上的字跟着重写（`relabel`，3.3.2）。
+
+use std::sync::Mutex;
 
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -15,10 +17,25 @@ use crate::settings2::PanelRect;
 const TRAY_ID: &str = "main";
 const TOOLTIP: &str = "lolPing";
 
-/// 「信号开启」这一项，开关变了要跟着勾上或取消。
-struct PingsItem(CheckMenuItem<Wry>);
-/// 「检查更新」这一项。
-struct UpdateItem(MenuItem<Wry>);
+// 菜单上的字。换语言时 `relabel` 照这些重写一遍（3.3.2）。
+const PINGS_TEXT: &str = "信号开启";
+const OPEN_TEXT: &str = "打开控制面板";
+const QUIT_TEXT: &str = "退出";
+
+/// 「检查更新」，查到新版本时是「更新到 vX」。
+fn update_text(version: Option<&str>) -> String {
+    version.map_or_else(|| "检查更新".to_string(), |v| format!("更新到 v{v}"))
+}
+
+/// 菜单里字会变的几项：开关变了「信号开启」跟着勾上或取消；查到新版本「检查更新」变成「更新到 vX」；换语言时都重写。
+struct Items {
+    pings: CheckMenuItem<Wry>,
+    open: MenuItem<Wry>,
+    update: MenuItem<Wry>,
+    quit: MenuItem<Wry>,
+    /// 查到的新版本号：换语言重写「更新到 vX」时要用。
+    update_version: Mutex<Option<String>>,
+}
 
 /// 把控制面板调到前面（托盘、再次打开程序都用它）。
 pub fn show_main(app: &AppHandle) {
@@ -116,10 +133,10 @@ pub fn remember_main(window: &Window) {
 }
 
 pub fn setup(app: &tauri::App, enabled: bool) -> tauri::Result<()> {
-    let pings = CheckMenuItem::with_id(app, "pings", "信号开启", true, enabled, None::<&str>)?;
-    let open = MenuItem::with_id(app, "open", "打开控制面板", true, None::<&str>)?;
-    let update = MenuItem::with_id(app, "update", "检查更新", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let pings = CheckMenuItem::with_id(app, "pings", PINGS_TEXT, true, enabled, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", OPEN_TEXT, true, None::<&str>)?;
+    let update = MenuItem::with_id(app, "update", update_text(None), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", QUIT_TEXT, true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
         &[
@@ -130,8 +147,13 @@ pub fn setup(app: &tauri::App, enabled: bool) -> tauri::Result<()> {
             &quit,
         ],
     )?;
-    app.manage(PingsItem(pings));
-    app.manage(UpdateItem(update));
+    app.manage(Items {
+        pings,
+        open,
+        update,
+        quit,
+        update_version: Mutex::new(None),
+    });
     let mut tray = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip(TOOLTIP)
         .menu(&menu)
@@ -173,15 +195,28 @@ pub fn setup(app: &tauri::App, enabled: bool) -> tauri::Result<()> {
 }
 
 pub fn set_checked(app: &AppHandle, on: bool) {
-    if let Some(item) = app.try_state::<PingsItem>() {
-        let _ = item.0.set_checked(on);
+    if let Some(items) = app.try_state::<Items>() {
+        let _ = items.pings.set_checked(on);
     }
 }
 
 /// 查到新版本时「检查更新」变成「更新到 vX」，没有时变回来。
 pub fn set_update_label(app: &AppHandle, version: Option<&str>) {
-    if let Some(item) = app.try_state::<UpdateItem>() {
-        let text = version.map_or_else(|| "检查更新".to_string(), |v| format!("更新到 v{v}"));
-        let _ = item.0.set_text(text);
+    if let Some(items) = app.try_state::<Items>() {
+        if let Ok(mut v) = items.update_version.lock() {
+            *v = version.map(str::to_owned);
+        }
+        let _ = items.update.set_text(update_text(version));
+    }
+}
+
+/// 换了语言：菜单上的字全部重写（3.3.2）。
+pub fn relabel(app: &AppHandle) {
+    if let Some(items) = app.try_state::<Items>() {
+        let _ = items.pings.set_text(PINGS_TEXT);
+        let _ = items.open.set_text(OPEN_TEXT);
+        let _ = items.quit.set_text(QUIT_TEXT);
+        let version = items.update_version.lock().ok().and_then(|v| v.clone());
+        let _ = items.update.set_text(update_text(version.as_deref()));
     }
 }

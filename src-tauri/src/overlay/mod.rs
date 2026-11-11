@@ -639,6 +639,11 @@ pub fn floating_window(
     focusable: bool,
 ) -> tauri::Result<WebviewWindow> {
     WebviewWindowBuilder::new(app, label, WebviewUrl::App(page.into()))
+        // 页面一开始就知道用哪种语言（3.3.2，见 i18n.rs 第 3 条）；之后变了收 lang://changed
+        .initialization_script(format!(
+            "window.__LOLPING_LANG__ = {:?};",
+            crate::i18n::current().code()
+        ))
         .title(title)
         .transparent(true)
         .decorations(false)

@@ -215,6 +215,7 @@ fn saved_settings_read_back() {
     let s = Settings {
         volume: 25,
         theme: "dark".into(),
+        language: "en".into(),
         ..Settings::default()
     };
     settings::save(&c, &s).unwrap();

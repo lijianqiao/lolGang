@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::emotes::{self, CustomEmote};
+use crate::i18n;
 use crate::input::gesture::{self, MOD_ALT, MOD_CTRL, MOD_WIN};
 
 /// 全部信号的 id，和前端 `src/shared/pings.ts` 一致。
@@ -158,6 +159,8 @@ pub struct Settings {
     pub muted: bool,
     pub tick_sound: bool,
     pub theme: String,
+    /// 界面语言（3.3.2）：`system` 跟随系统、`zh`、`en`，见 `i18n.rs`。老设置文件里没有，当跟随系统。
+    pub language: String,
     /// 不在同一局域网时经公共中继转发；关掉就只用局域网。
     pub allow_internet: bool,
     /// 自己填的中继；空表示用默认列表（以后默认列表更新了，没改过的人自动用上新的）。
@@ -228,6 +231,7 @@ impl Default for Settings {
             muted: false,
             tick_sound: true,
             theme: THEMES[0].into(),
+            language: i18n::LANGUAGES[0].into(),
             allow_internet: true,
             relays: Vec::new(),
             emote_trigger: Some(TriggerKey::Named(NamedTrigger::Ctrl)),
@@ -582,6 +586,11 @@ pub fn normalize_keys(raw: &Value) -> (Settings, Vec<KeyClash>) {
         muted: bool_or(get("muted"), d.muted),
         tick_sound: bool_or(get("tickSound"), d.tick_sound),
         theme: one_of(get("theme"), |t| THEMES.contains(&t), THEMES[0]),
+        language: one_of(
+            get("language"),
+            |l| i18n::LANGUAGES.contains(&l),
+            i18n::LANGUAGES[0],
+        ),
         allow_internet: bool_or(get("allowInternet"), d.allow_internet),
         relays: relays(get("relays")),
         emote_trigger,

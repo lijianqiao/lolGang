@@ -6,10 +6,13 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CustomEmote } from "./shared/emotes";
 import type { Hotkey } from "./shared/keys";
 import type { PingId } from "./shared/pings";
+import type { Lang } from "./i18n";
 
 export type NamedTrigger = "alt" | "ctrl" | "shift" | "win" | "capslock" | "mouse4" | "mouse5";
 export type TriggerKey = NamedTrigger | { vk: number };
 export type Theme = "system" | "light" | "dark";
+/** 界面语言的设置（3.3.2）：跟随系统、中文、English。实际用的是哪种看 Status.lang。 */
+export type Language = "system" | "zh" | "en";
 export type TextEffect = "outline" | "gold" | "neon" | "bounce" | "typewriter" | "shake";
 
 /** 和 Rust 的 settings2::Settings 对应。 */
@@ -36,6 +39,7 @@ export interface Settings {
   muted: boolean;
   tickSound: boolean;
   theme: Theme;
+  language: Language;
   /** 不在同一局域网时经公共中继转发。 */
   allowInternet: boolean;
   /** 自己填的中继；空表示用默认列表。 */
@@ -86,6 +90,8 @@ export interface Status {
   inputError: string | null;
   /** macOS 上监听没起来，顶部显示授权卡片。 */
   needsPermission: boolean;
+  /** 界面现在用的语言（3.3.2）。 */
+  lang: Lang;
 }
 
 export const readSettings = (): Promise<Settings> => invoke("settings_read");

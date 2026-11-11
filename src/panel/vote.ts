@@ -1,6 +1,7 @@
 // 投票窗口：投降和踢人在屏幕右边，准备确认在中间。能点、不拿焦点。Rust 推 "vote:state" 就重画。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
 import { runCountdown, voteCard, type VoteDto } from "./shared";
 import "./panel.css";
 

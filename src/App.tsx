@@ -15,6 +15,8 @@ import { ShortcutsPage } from "./components/ShortcutsPage";
 import { TeamPage } from "./components/TeamPage";
 import { VoicePage } from "./components/VoicePage";
 import logo from "./assets/logo.svg";
+import { setLang } from "./i18n";
+import { useLang } from "./i18n/react";
 import "./app.css";
 
 type Page = "team" | "pings" | "emotes" | "voice" | "shortcuts" | "features" | "about";
@@ -31,6 +33,7 @@ const PAGES: { id: Page; label: string; icon: IconName }[] = [
 const SAVE_DELAY_MS = 300;
 
 export default function App() {
+  useLang(); // 换语言时整个控制面板重画（3.3.2）
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   /** 最近一次保存时被 Rust 换掉的按键，交给快捷键页说明。 */
@@ -52,7 +55,13 @@ export default function App() {
       },
       (e) => setError(String(e)),
     );
-    getStatus().then(setStatus, (e) => setError(String(e)));
+    getStatus().then(
+      (s) => {
+        setLang(s.lang);
+        setStatus(s);
+      },
+      (e) => setError(String(e)),
+    );
     const off = onEnabled((on) => setStatus((s) => (s ? { ...s, enabled: on } : s)));
     const offNav = onNavigate((p) => {
       if (PAGES.some((x) => x.id === p)) setPage(p as Page);

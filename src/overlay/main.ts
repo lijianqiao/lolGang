@@ -2,6 +2,7 @@
 // 它在空闲时报告一声，让 Rust 把窗口挪开。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
 import { FALLBACK_TEXTURE, TICK_SOUND, allSoundNames, pingById, soundUrl, textureUrl } from "../shared/pings";
 import { bundledSoundUrl, customHash, customUrl, emoteIcon, isBundled, type CustomEmote } from "../shared/emotes";
 import { EmoteStage, type EmoteArt } from "./emoteStage";

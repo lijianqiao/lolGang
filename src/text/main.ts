@@ -6,6 +6,7 @@
 // 输入部分参考 lolPing src/renderer/text/main.ts（MIT，© 2026 Danrui Meng）。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import "../i18n"; // 界面语言（3.3.2）：设 <html lang>、收 lang://changed
 import type { Settings, TeamView } from "../api";
 import { el } from "../shared/dom";
 import { emoteIcon, emoteName, type CustomEmote } from "../shared/emotes";

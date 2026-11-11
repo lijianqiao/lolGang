@@ -8,6 +8,7 @@ pub mod error;
 #[cfg(test)]
 mod fuzz;
 pub mod history;
+pub mod i18n;
 pub mod identity;
 pub mod input;
 pub mod keystore;
@@ -206,6 +207,7 @@ fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     crash::arm_test_panic(dev_instance());
     let db = storage::open(&dir.join("gang2.db"))?;
     let settings = storage::settings::load(&db)?;
+    i18n::apply(&settings.language); // 透明窗口、托盘建之前定好语言
     // 控制面板建好时藏着：开机启动就一直不显示（后面销毁），否则回到上次关掉时的位置再显示
     let autostart = std::env::args().any(|a| a == AUTOSTART_ARG);
     if !autostart && let Some(w) = app.get_webview_window("main") {

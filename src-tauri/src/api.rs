@@ -20,7 +20,7 @@ use crate::node::NodeHandle;
 use crate::overlay::{Msg, Overlays};
 use crate::settings2::{self, OverlaySettings, Settings};
 use crate::team::{self, TeamState};
-use crate::{emotes, storage, tray};
+use crate::{emotes, i18n, storage, tray};
 
 pub struct AppState {
     pub db: Mutex<Connection>,
@@ -62,6 +62,8 @@ pub struct Status {
     pub input_error: Option<String>,
     /// macOS 上监听没起来：多半是缺「辅助功能」权限，控制面板顶部显示授权卡片。
     pub needs_permission: bool,
+    /// 界面现在用的语言（3.3.2）：设置里选的，或者跟随系统换算出来的。
+    pub lang: i18n::Lang,
 }
 
 /// 开关信号，并让托盘、控制面板跟上。
@@ -216,6 +218,11 @@ fn apply_normalized(
         .voice
         .send(crate::voice::VoiceMsg::Config(s.voice_config()));
     apply_window_theme(app, &s.theme);
+    if s.language != old.language && i18n::apply(&s.language) {
+        // 语言真的变了（中文系统上「跟随系统」换成「中文」不算）：托盘重写，所有窗口重画
+        tray::relabel(app);
+        let _ = app.emit("lang://changed", i18n::current().code());
+    }
     team::refresh_presence(app); // 轮盘上的导入表情变了，报的哈希跟着变
     let relays = s.active_relays();
     if relays != old_relays {
@@ -231,6 +238,7 @@ pub fn status_get(state: State<'_, AppState>) -> Status {
         enabled: state.enabled.load(Ordering::Relaxed),
         input_error: state.input_error.clone(),
         needs_permission: cfg!(target_os = "macos") && state.input_error.is_some(),
+        lang: i18n::current(),
     }
 }
 

@@ -55,6 +55,7 @@ fn a_saved_file_reads_back_the_same() {
         muted: true,
         tick_sound: false,
         theme: "dark".into(),
+        language: "en".into(),
         allow_internet: false,
         relays: vec!["wss://my.relay".into()],
         emote_trigger: None,
@@ -237,6 +238,17 @@ fn unknown_click_ping_and_theme_fall_back() {
     let s = normalize(&json!({ "clickPingId": "nope", "theme": "purple" }));
     assert_eq!(s.click_ping_id, "generic");
     assert_eq!(s.theme, "system");
+}
+
+#[test]
+fn language_defaults_to_system_for_old_files_and_unknown_values() {
+    // 3.3.1 及以前的设置文件里没有 language：跟随系统（所有者定的，老用户也一样）
+    assert_eq!(normalize(&json!({ "theme": "dark" })).language, "system");
+    assert_eq!(normalize(&json!({ "language": "ja" })).language, "system");
+    assert_eq!(normalize(&json!({ "language": 3 })).language, "system");
+    for l in ["system", "zh", "en"] {
+        assert_eq!(normalize(&json!({ "language": l })).language, l);
+    }
 }
 
 #[test]
